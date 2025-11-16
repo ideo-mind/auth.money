@@ -11,7 +11,7 @@ export class ChallengeStore {
     try {
       console.log("Storing challenge in Arkiv...", {
         challengeId: challenge,
-        expiresIn: 10 * 60,
+        expiresIn: 5 * 60,
         why: "challenge session creation",
       })
       
@@ -22,14 +22,14 @@ export class ChallengeStore {
           { key: "type", value: "challenge" },
           { key: "challengeId", value: challenge },
         ],
-        expiresIn: 10 * 60, // 10-minute expiry
+        expiresIn: 5 * 60, // 5-minute expiry - perfect match for challenge lifetime
       })
 
       console.log("✅ Challenge stored in Arkiv successfully", {
         challengeId: challenge,
         entityKey,
         txHash,
-        expiresIn: 10 * 60,
+        expiresIn: 5 * 60,
       })
     } catch (error) {
       console.error("Failed to store challenge in Arkiv:", {
@@ -72,7 +72,7 @@ export class ChallengeStore {
       console.log("✅ Challenge found in Arkiv, extending TTL", {
         challengeId: challenge,
         resultsCount: results.entities.length,
-        currentExpiresIn: 10 * 60,
+        currentExpiresIn: 5 * 60,
         newExpiresIn: 60,
       })
 

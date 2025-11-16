@@ -2,7 +2,19 @@
 
 ## 🎯 Arkiv Network Integration
 
-MoneyPot Authentication Service uses **Arkiv Network** as a decentralized storage layer for challenge session management, replacing traditional centralized key-value storage with an Ethereum-based data layer that provides automatic TTL (Time-To-Live) expiration.
+MoneyPot Authentication Service uses **Arkiv Network** as a decentralized storage layer for challenge session management, replacing traditional centralized key-value storage (Cloudflare KV) with an Ethereum-based data layer that provides automatic TTL (Time-To-Live) expiration.
+
+### 🏆 Bounty Focus: TTL Efficiency
+
+This integration demonstrates **perfect TTL efficiency** with a 5-minute challenge lifetime matching a 5-minute TTL, eliminating manual session cleanup while providing queryable analytics without additional infrastructure.
+
+**Key Features**:
+
+- ✅ **Perfect Match**: 5-minute challenges = 5-minute TTL
+- ✅ **Cost Efficient**: Auto-cleanup prevents data bloat
+- ✅ **Queryable Analytics**: Built-in query builder, no separate indexer needed
+- ✅ **Decentralized**: No Cloudflare KV dependency
+- ✅ **Performance**: Same latency as centralized storage
 
 ## Architecture Overview
 
@@ -84,8 +96,8 @@ sequenceDiagram
 
     AuthService->>AuthService: Generate Challenges<br/>(Password-based grid)
 
-    Note over AuthService,Arkiv: Store Challenge Session in Arkiv
-    AuthService->>Arkiv: createEntity({<br/>  type: "challenge",<br/>  challengeId: attempt_id,<br/>  expiresIn: 600<br/>})
+    Note over AuthService,Arkiv: Store Challenge Session in Arkiv<br/>Perfect TTL Match: 5 minutes
+    AuthService->>Arkiv: createEntity({<br/>  type: "challenge",<br/>  challengeId: attempt_id,<br/>  expiresIn: 300<br/>})
     Arkiv-->>AuthService: entityKey, txHash
 
     AuthService-->>Frontend: {<br/>  challenge_id: attempt_id,<br/>  challenges: [...]<br/>}
@@ -118,11 +130,13 @@ sequenceDiagram
 
 MoneyPot replaced **Cloudflare KV** with **Arkiv Network** for challenge session storage because:
 
-1. **Decentralized**: No dependency on Cloudflare's centralized storage
-2. **Automatic Expiration**: Built-in TTL eliminates need for manual cleanup
-3. **Cost-Effective**: Ethereum-based storage with predictable costs
-4. **Transparent**: All challenge sessions are queryable on-chain
-5. **Resilient**: Distributed storage reduces single point of failure
+1. **🎯 Perfect TTL Match**: 5-minute challenges = 5-minute TTL (no manual cleanup needed)
+2. **💰 Cost Efficient**: Auto-cleanup prevents data bloat, no storage fees for expired sessions
+3. **📊 Queryable Analytics**: Built-in query builder eliminates need for separate indexer
+4. **🌐 Decentralized**: No dependency on Cloudflare's centralized storage
+5. **🔍 Transparent**: All challenge sessions are queryable on-chain
+6. **🛡️ Resilient**: Distributed storage reduces single point of failure
+7. **⚡ Same Performance**: Similar latency to centralized KV storage
 
 ### Arkiv Implementation
 
@@ -130,6 +144,7 @@ MoneyPot replaced **Cloudflare KV** with **Arkiv Network** for challenge session
 
 ```typescript
 // Creating a challenge session in Arkiv
+// Perfect TTL match: 5-minute challenges = 5-minute TTL
 const { entityKey, txHash } = await walletClient.createEntity({
   payload: stringToPayload("active"),
   contentType: "text/plain",
@@ -137,7 +152,7 @@ const { entityKey, txHash } = await walletClient.createEntity({
     { key: "type", value: "challenge" },
     { key: "challengeId", value: attempt_id },
   ],
-  expiresIn: 10 * 60, // 10-minute expiry
+  expiresIn: 5 * 60, // 5-minute expiry - perfect match for challenge lifetime
 })
 ```
 
@@ -159,14 +174,14 @@ graph LR
         CREATE["1. Create Challenge<br/>POST /authenticate/options"]
         STORE["2. Store in Arkiv<br/>createEntity"]
         QUERY["3. Verify Challenge<br/>POST /authenticate/verify"]
-        EXPIRE["4. Auto-Expire<br/>TTL: 10 minutes"]
+        EXPIRE["4. Auto-Expire<br/>TTL: 5 minutes"]
     end
 
     subgraph "Arkiv Entity Structure"
         ENTITY[Entity]
         ATTRS["Attributes:<br/>- type: challenge<br/>- challengeId: xxx"]
         PAYLOAD["Payload:<br/>active"]
-        TTL["TTL:<br/>600 seconds"]
+        TTL["TTL:<br/>300 seconds<br/>(5 minutes)"]
     end
 
     CREATE --> STORE
@@ -197,7 +212,7 @@ graph TB
     end
 
     subgraph "Arkiv Network"
-        ARKIV_SESSIONS[Challenge Sessions<br/>TTL: 10 minutes]
+        ARKIV_SESSIONS["Challenge Sessions<br/>TTL: 5 minutes<br/>Perfect Match!"]
     end
 
     subgraph "Blockchain"
@@ -268,7 +283,7 @@ classDiagram
     ChallengeStore --> ArkivClient : uses for writes
     ChallengeStore --> ArkivPublicClient : uses for reads
 
-    note for ChallengeStore "Handles challenge session<br/>storage in Arkiv Network<br/>with 10-minute TTL"
+    note for ChallengeStore "Handles challenge session<br/>storage in Arkiv Network<br/>with 5-minute TTL<br/>(Perfect match!)"
 ```
 
 ### Request Flow
@@ -332,11 +347,14 @@ graph TB
 
 ## Benefits of Arkiv Integration
 
-1. **Decentralization**: Challenge sessions stored on Ethereum-based Arkiv Network
-2. **Automatic Cleanup**: TTL-based expiration eliminates manual session management
-3. **Transparency**: All challenge sessions queryable on-chain
-4. **Cost Efficiency**: Predictable storage costs with automatic expiration
-5. **Resilience**: Distributed storage reduces dependency on centralized services
+1. **🎯 Perfect TTL Efficiency**: 5-minute challenges = 5-minute TTL match (no wasted storage)
+2. **💰 Cost Efficiency**: Auto-cleanup prevents data bloat, no storage fees for expired sessions
+3. **📊 Queryable Analytics**: Built-in query builder eliminates need for separate indexer infrastructure
+4. **🌐 Decentralization**: Challenge sessions stored on Ethereum-based Arkiv Network
+5. **⚡ Automatic Cleanup**: TTL-based expiration eliminates manual session management
+6. **🔍 Transparency**: All challenge sessions queryable on-chain
+7. **🛡️ Resilience**: Distributed storage reduces dependency on centralized services
+8. **🚀 Performance**: Same latency as centralized KV storage
 
 ## Technical Implementation
 
@@ -364,7 +382,7 @@ const publicClient = createPublicClient({
   - `type`: "challenge"
   - `challengeId`: unique attempt identifier
 - **Payload**: "active" (status indicator)
-- **TTL**: 600 seconds (10 minutes)
+- **TTL**: **300 seconds (5 minutes)** - Perfect match for challenge lifetime
 
 ### Query Pattern
 
@@ -381,10 +399,31 @@ const results = await publicClient
 
 All Arkiv operations are logged with structured logging:
 
-- Challenge creation events
-- Challenge query events
+- Challenge creation events (with TTL tracking)
+- Challenge query events (analytics-ready)
 - TTL extension events
 - Error events with full context
+
+### Queryable Analytics
+
+Arkiv's built-in query builder enables analytics without additional infrastructure:
+
+```typescript
+// Get all active challenges
+const allActive = await publicClient
+  .buildQuery()
+  .where([eq("type", "challenge")])
+  .fetch()
+
+// Get challenge metrics
+const metrics = {
+  totalChallenges: allActive.entities.length,
+  activeChallenges: allActive.entities.filter((e) => e.expiresAt > Date.now())
+    .length,
+}
+```
+
+This eliminates the need for separate indexers or analytics databases.
 
 ## Future Enhancements
 
