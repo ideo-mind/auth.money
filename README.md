@@ -135,11 +135,11 @@ See [Setup Instructions](#setup-instructions) below for full deployment guide.
 
 ---
 
-### Polkadot Builder Party Hackathon
+### sub0 Nov 2025 - Devconnect Argentina
 
 **Project**: MoneyPot - Multi-Chain Treasure Hunting Authentication
 
-**Hackathon**: Polkadot Builder Party Hackathon
+**Hackathon**: sub0 Nov 2025 at Devconnect Argentina
 
 ### 🚀 Live Deployments
 
@@ -590,4 +590,4 @@ This authentication backend is part of the MoneyPot ecosystem:
 
 ---
 
-**Built for Polkadot Builder Party Hackathon** 🚀
+**Built for sub0 Nov 2025 - Devconnect Argentina** 🚀
