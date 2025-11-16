@@ -91,7 +91,8 @@ See **[ARCHITECTURE.md](./ARCHITECTURE.md)** for detailed architecture diagrams,
 
 #### 🎬 Demo Video
 
-**Link**: [To be added - 2-3 minute demo video]
+- **Teaser**: [Money Pot Teaser — Now live on Polkadot Hub](https://youtu.be/eSFPyIC-OUk)
+- **Full Demo**: [To be added - 2-3 minute demo video]
 
 #### 🚀 Live Demo
 
@@ -155,6 +156,7 @@ See [Setup Instructions](#setup-instructions) below for full deployment guide.
 
 ### 📹 Videos & Presentation
 
+- **🎬 Teaser**: [Money Pot Teaser — Now live on Polkadot Hub](https://youtu.be/eSFPyIC-OUk)
 - **Pitch Video**: [Watch on YouTube](https://youtu.be/430EiladvGk)
 - **Demo Videos**:
   - **EVM Demo (Polkadot Hub)**: [Watch on YouTube](https://youtu.be/E13YjXeCWoo)
