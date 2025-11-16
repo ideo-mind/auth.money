@@ -1,14 +1,42 @@
 # MoneyPot Authentication Service
 
-A production-grade authentication service for MoneyPot, providing multi-chain wallet verification for treasure hunting games on Aptos and EVM-compatible blockchains.
+A production-grade authentication service for MoneyPot, providing multi-chain wallet verification for treasure hunting games on Aptos and EVM-compatible blockchains, including **Polkadot Hub Testnet (Passet)**.
+
+## 🎯 Hackathon Submission
+
+**Project**: MoneyPot - Multi-Chain Treasure Hunting Authentication
+
+**Hackathon**: Polkadot Builder Party Hackathon
+
+### 🚀 Live Deployments
+
+- **Authentication Backend**: https://auth.money-pot.ideomind.org
+- **Arkiv-Powered App**: https://money-pot.ideomind.org
+- **Polkadot Testnet EVM Hub App**: https://mp-evm.ideomind.org
+
+### 📹 Videos & Presentation
+
+- **Pitch Video**: [Link to be added]
+- **Demo Video**: [Link to be added]
+- **Pitch Deck**: [Link to be added]
+
+### 👥 Team
+
+- **Hiro** - Lead Developer ([hiro@ideomind.org](mailto:hiro@ideomind.org))
+  - Architecture & Backend Development
+  - Smart Contract Integration
+  - Multi-Chain Support
+
+---
 
 ## Overview
 
-MoneyPot Authentication Service is a Cloudflare Workers-based API that enables secure wallet authentication and registration for treasure hunting games. It supports both Aptos and EVM-compatible chains, allowing users to authenticate and participate in treasure hunting competitions with encrypted password challenges.
+MoneyPot Authentication Service is a Cloudflare Workers-based API that enables secure wallet authentication and registration for treasure hunting games. It supports both Aptos and EVM-compatible chains (including Polkadot Hub Testnet), allowing users to authenticate and participate in treasure hunting competitions with encrypted password challenges.
 
 ## Features
 
-- **Multi-Chain Support**: Aptos and EVM-compatible chains (Creditcoin, Sepolia, Polkadot Hub, Somnia)
+- **Multi-Chain Support**: Aptos and EVM-compatible chains (Creditcoin, Sepolia, **Polkadot Hub**, Somnia)
+- **Polkadot Hub Integration**: Deployed and tested on Polkadot Hub Testnet (Passet Hub)
 - **Wallet Authentication**: Secure signature-based wallet verification
 - **Encrypted Challenges**: RSA-encrypted password challenges for treasure hunting
 - **Public API**: All endpoints use public RPC endpoints (no API keys required)
@@ -19,7 +47,7 @@ MoneyPot Authentication Service is a Cloudflare Workers-based API that enables s
 
 - **Runtime**: Cloudflare Workers (Hono framework)
 - **Database**: Cloudflare KV for persistent storage
-- **Blockchain**: Aptos and EVM-compatible chains
+- **Blockchain**: Aptos and EVM-compatible chains (including Polkadot Hub)
 - **Storage**: Arkiv Network for challenge storage (decentralized, TTL-based)
 - **Crypto**: RSA encryption/decryption, ECDSA signature verification
 
@@ -87,7 +115,7 @@ Verifies authentication solution.
 }
 ```
 
-### EVM Endpoints
+### EVM Endpoints (Including Polkadot Hub)
 
 #### POST `/evm/register/options`
 Generates RSA key pair for encrypted pot registration on EVM chains.
@@ -107,18 +135,18 @@ Request airdrop tokens for testing.
 ### General Endpoints
 
 #### GET `/chains`
-Returns all supported chains and their configurations.
+Returns all supported chains and their configurations, including Polkadot Hub.
 
 **Response:**
 ```json
 {
   "chains": [
     {
-      "chainId": 2,
-      "type": "aptos",
-      "name": "Aptos Testnet",
-      "rpcUrl": "https://fullnode.testnet.aptoslabs.com/v1",
-      "explorerUrl": "https://explorer.aptoslabs.com",
+      "chainId": 420420422,
+      "type": "evm",
+      "name": "Polkadot Hub Testnet",
+      "rpcUrl": "https://testnet-passet-hub-eth-rpc.polkadot.io",
+      "explorerUrl": "https://blockscout-passet-hub.parity-testnet.parity.io",
       "contracts": {
         "moneypot": {
           "address": "0x..."
@@ -132,6 +160,9 @@ Returns all supported chains and their configurations.
 #### GET `/health`
 Health check endpoint.
 
+#### GET `/`
+Service information and available endpoints.
+
 ## Supported Chains
 
 ### Aptos
@@ -140,7 +171,7 @@ Health check endpoint.
 ### EVM-Compatible
 - **Creditcoin Testnet** (Chain ID: 102031)
 - **Sepolia** (Chain ID: 11155111)
-- **Polkadot Hub Testnet** (Chain ID: 420420422)
+- **Polkadot Hub Testnet** (Chain ID: 420420422) ✅ **Hackathon Focus**
 - **Somnia Shannon Testnet** (Chain ID: 50312)
 
 ## Authentication Flow
@@ -160,7 +191,7 @@ Health check endpoint.
 4. Submit solutions → call `/authenticate/verify`
 5. Receive payout on success
 
-## Development
+## Setup Instructions
 
 ### Prerequisites
 
@@ -171,13 +202,33 @@ Health check endpoint.
 ### Installation
 
 ```bash
+# Clone the repository
+git clone <repository-url>
+cd moneypot.auth
+
+# Install dependencies
 bun install
 ```
 
 ### Development
 
 ```bash
+# Start local development server
 bun run dev
+```
+
+The service will be available at `http://localhost:8787`
+
+### Testing the API
+
+Test the health endpoint:
+```bash
+curl https://auth.money-pot.ideomind.org/health
+```
+
+Get supported chains:
+```bash
+curl https://auth.money-pot.ideomind.org/chains
 ```
 
 ### Build
@@ -189,6 +240,7 @@ bun run build
 ### Deployment
 
 ```bash
+# Deploy to Cloudflare Workers
 bun run deploy
 ```
 
@@ -201,6 +253,33 @@ All configuration is hardcoded in `src/config/`:
 
 All RPC endpoints are public (no API keys required).
 
+### Polkadot Hub Configuration
+
+The service is configured for Polkadot Hub Testnet with:
+- Chain ID: `420420422`
+- RPC: `https://testnet-passet-hub-eth-rpc.polkadot.io`
+- Explorer: `https://blockscout-passet-hub.parity-testnet.parity.io`
+- Native Token: Passet (PAS)
+
+## Testing on Polkadot Hub
+
+### Getting Test Tokens
+
+1. Visit the [Polkadot Faucet](https://faucet.polkadot.io/?parachain=1111)
+2. Request Passet (PAS) tokens
+3. Connect your wallet to the testnet
+
+### Interacting with the API
+
+1. **Check supported chains**:
+   ```bash
+   curl https://auth.money-pot.ideomind.org/chains | jq '.chains[] | select(.chainId == 420420422)'
+   ```
+
+2. **Register a pot** (via frontend at https://mp-evm.ideomind.org)
+
+3. **Authenticate** (via frontend at https://mp-evm.ideomind.org)
+
 ## Security
 
 - RSA encryption for sensitive data (2048-bit keys)
@@ -209,6 +288,50 @@ All RPC endpoints are public (no API keys required).
 - One-time use challenges (deleted after verification)
 - Blockchain integration for pot and attempt validation
 
+## Tech Stack
+
+- **Runtime**: Cloudflare Workers
+- **Framework**: Hono
+- **Language**: TypeScript
+- **Blockchain SDKs**: 
+  - Viem (EVM chains)
+  - Aptos SDK
+  - Arkiv SDK
+- **Crypto**: node-forge, crypto
+- **Package Manager**: Bun
+
+## Project Structure
+
+```
+src/
+├── config/          # Chain configurations (Polkadot Hub included)
+├── routes/          # API route handlers
+│   ├── aptos/      # Aptos endpoints
+│   ├── evm/        # EVM endpoints (Polkadot Hub)
+│   └── chains/     # Chain info endpoint
+├── mw/              # Middleware (wallet auth, throttling)
+├── db/              # Database abstractions (KV stores)
+├── utils/           # Utility functions
+├── web3/            # Blockchain utilities
+└── lib/             # Core libraries
+```
+
+## Milestone 2 Plan
+
+See [MILESTONE-2-PLAN.md](./MILESTONE-2-PLAN.md) for detailed Milestone 2 roadmap.
+
 ## License
 
-See LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
+
+## Contact
+
+- **Email**: [hiro@ideomind.org](mailto:hiro@ideomind.org)
+- **Backend API**: https://auth.money-pot.ideomind.org
+- **Demo Apps**: 
+  - https://money-pot.ideomind.org (Arkiv-powered)
+  - https://mp-evm.ideomind.org (Polkadot Hub)
+
+---
+
+**Built for Polkadot Builder Party Hackathon** 🚀

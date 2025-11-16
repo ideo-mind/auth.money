@@ -1,6 +1,6 @@
 {
   "name": "money-auth",
-  "private": "true",
+  "private": false,
   "description": "MoneyPot Authentication Service - Multi-chain wallet verification for treasure hunting",
   "keywords": [
     "aptos",
