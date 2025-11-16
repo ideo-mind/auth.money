@@ -1,0 +1,51 @@
+"$schema" = "node_modules/wrangler/config-schema.json"
+name = "money-auth"
+main = "src/index.ts"
+compatibility_date = "2025-02-04"
+compatibility_flags = ["nodejs_compat", "nodejs_als"]
+
+[observability]
+enabled = true
+
+[[kv_namespaces]]
+binding = "AUTH_DB"
+id = "74f78514d5b14a82a3a0d6775f26f5da"
+preview_id = "74f78514d5b14a82a3a0d6775f26f5da"
+
+# Define environment variables
+[vars]
+# Multi-chain Oracle private keys (per chain type)
+# ORACLE_PRIVATE_KEY_APTOS = ""
+# ORACLE_PRIVATE_KEY_EVM = ""  # Used for Arkiv challenge storage
+
+# Oracle account address for EVM operations
+EVM_ORACLE_ACCOUNT = "0xBAf5a46a2153207ff97993AC5c94179d2956ddF8"
+EVM_AIRDROP_ACCOUNT = "0x0B10339E9b98A8e6A7122FeB5D9B97e233142833"
+
+EVM_1P_VERIFIER_ACCOUNT = "0xBAf5a46a2153207ff97993AC5c94179d2956ddF8"
+
+# Legacy Aptos configuration (can be removed after migration)
+APTOS_NODE_URL = "https://fullnode.testnet.aptoslabs.com/v1"
+APTOS_MONEY_POT_ADDRESS = "0xea89ef9798a210009339ea6105c2008d8e154f8b5ae1807911c86320ea03ff3f"
+
+
+# NO RPC URLs or contract addresses here!
+# All chain configs hardcoded in src/config/networks.ts
+
+[[durable_objects.bindings]]
+name = "REQUEST_THROTTLER"
+class_name = "RequestThrottler"
+
+
+[[migrations]]
+tag = "v1"
+new_classes = ["RequestThrottler"]
+
+[[migrations]]
+tag = "v2"
+new_classes = ["NonceManagerV1"]
+
+
+[[durable_objects.bindings]]
+name = "NONCE_V1_DO"
+class_name = "NonceManagerV1"

@@ -1,0 +1,726 @@
+# MoneyPot Authentication Service - Cursor Rules
+
+## Project Overview
+
+This is a sophisticated Hono-based authentication service running on Cloudflare Workers. It provides multi-chain authentication support for Aptos, EVM chains, and the 1P Protocol with comprehensive wallet verification, nonce management, and blockchain integration.
+
+## Architecture & Patterns
+
+### Directory Structure
+
+- `src/config/` - Configuration modules (networks, viem, 1p, etc.)
+- `src/db/` - Database abstractions (KV stores, credential management)
+- `src/lib/` - Core utilities (context, blockchain clients)
+- `src/mw/` - Hono middleware (wallet auth, chain management, throttling)
+- `src/routes/` - Route handlers organized by blockchain type
+- `src/types/` - TypeScript type definitions
+- `src/utils/` - Utility functions (crypto, signature verification)
+- `src/web3/` - Blockchain-specific utilities
+- `src/abis/` - Smart contract ABIs
+- `durables/` - Cloudflare Durable Objects
+- `test/` - Comprehensive test suite
+
+### Path Aliases (tsconfig.json)
+
+Use these aliases for clean imports:
+
+- `@types/*` → `./src/types/*`
+- `@routes/*` → `./src/routes/*`
+- `@config/*` → `./src/config/*`
+- `@utils/*` → `./src/utils/*`
+- `@db/*` → `./src/db/*`
+- `@mw/*` → `./src/mw/*`
+- `@lib/*` → `./src/lib/*`
+- `@web3/*` → `./src/web3/*`
+- `@durables/*` → `./durables/*`
+- `@abis/*` → `./src/abis/*`
+- `@/*` → `./*` (root-level imports)
+
+## Coding Style & Conventions
+
+### TypeScript Patterns
+
+- Use strict TypeScript with proper interfaces
+- Define context types with `IRunningContext` interface
+- Use generic functions for reusability
+- Prefer union types for flexibility
+- Always handle errors with proper try/catch blocks
+
+### Hono Patterns
+
+- Use `MiddlewareHandler<IRunningContext>` for typed middleware
+- Implement context storage with `contextStorage()`
+- Use `c.set()` and `c.get()` for context variables
+- Follow RESTful route organization
+- Use `c.executionCtx.waitUntil()` for background tasks
+
+### Database Abstraction Pattern
+
+```typescript
+export class StoreName {
+  private kv: KVNamespace
+  static readonly PREFIX = "prefix:"
+
+  constructor(kv: KVNamespace) {
+    this.kv = kv
+  }
+
+  static key(id: string): string {
+    return `${StoreName.PREFIX}${id}`
+  }
+
+  async get(id: string): Promise<Type | null> {
+    // Implementation
+  }
+
+  async set(id: string, data: Type): Promise<void> {
+    // Implementation
+  }
+}
+```
+
+### Middleware Pattern
+
+```typescript
+export const middlewareName: MiddlewareHandler<IRunningContext> = async (c, next) => {
+  // 1. Extract/validate input
+  // 2. Process logic
+  // 3. Set context variables
+  // 4. Continue to next middleware
+  return next()
+}
+```
+
+### Route Organization
+
+```typescript
+const router = new Hono<IRunningContext>()
+router.route("/feature", featureRouter)
+export default router
+```
+
+## Route Organization Patterns
+
+### Multi-Chain Route Structure
+
+- **Chain-specific routes** organized by blockchain type (`/aptos`, `/evm`, `/1p`)
+- **Each route has its own directory** with `index.ts` as the main file
+- **Sub-routes are organized** in subdirectories with their own `index.ts`
+- **Options routes** for CORS preflight handling
+
+### Directory Structure Pattern
+
+```
+src/routes/
+├── aptos/
+│   ├── index.ts          # Main Aptos router
+│   ├── authenticate/
+│   │   ├── index.ts      # POST /aptos/authenticate
+│   │   ├── options/
+│   │   │   └── index.ts  # OPTIONS /aptos/authenticate
+│   │   └── verify/
+│   │       └── index.ts  # POST /aptos/authenticate/verify
+│   └── register/
+│       ├── index.ts      # POST /aptos/register
+│       ├── options/
+│       │   └── index.ts  # OPTIONS /aptos/register
+│       └── verify/
+│           └── index.ts  # POST /aptos/register/verify
+├── evm/
+│   ├── index.ts          # Main EVM router
+│   ├── authenticate/
+│   │   ├── index.ts      # POST /evm/authenticate
+│   │   ├── options/
+│   │   │   └── index.ts  # OPTIONS /evm/authenticate
+│   │   └── verify/
+│   │       └── index.ts  # POST /evm/authenticate/verify
+│   ├── register/
+│   │   ├── index.ts      # POST /evm/register
+│   │   ├── options/
+│   │   │   └── index.ts  # OPTIONS /evm/register
+│   │   └── verify/
+│   │       └── index.ts  # POST /evm/register/verify
+│   └── airdrop/
+│       └── index.ts      # POST /evm/airdrop
+├── 1p/
+│   ├── index.ts          # Main 1P Protocol router
+│   ├── authenticate/
+│   │   ├── index.ts      # POST /1p/authenticate
+│   │   ├── options/
+│   │   │   └── index.ts  # OPTIONS /1p/authenticate
+│   │   └── verify/
+│   │       └── index.ts  # POST /1p/authenticate/verify
+│   ├── register/
+│   │   ├── index.ts      # POST /1p/register
+│   │   ├── options/
+│   │   │   └── index.ts  # OPTIONS /1p/register
+│   │   └── verify/
+│   │       └── index.ts  # POST /1p/register/verify
+│   ├── airdrop/
+│   │   └── index.ts      # POST /1p/airdrop
+│   └── chains/
+│       └── index.ts      # GET /1p/chains
+└── chains/
+    └── index.ts          # GET /chains
+```
+
+### Route Import Pattern
+
+```typescript
+// Main route file (e.g., src/routes/evm/index.ts)
+import { Hono } from "hono"
+import authenticateRouter from "./authenticate"
+import registerRouter from "./register"
+import airdropRouter from "./airdrop"
+import { IRunningContext } from "@lib/context"
+import { useEVMWallet } from "@mw/useEVMWallet"
+import { useEVMChain } from "@mw/useEVMChain"
+
+const router = new Hono<IRunningContext>()
+
+router.use("*", useEVMWallet)
+router.use("*", useEVMChain)
+router.route("/authenticate", authenticateRouter)
+router.route("/register", registerRouter)
+router.route("/airdrop", airdropRouter)
+
+export default router
+```
+
+### Sub-route Pattern
+
+```typescript
+// Sub-route file (e.g., src/routes/evm/authenticate/index.ts)
+import { Hono } from "hono"
+import { IRunningContext } from "@lib/context"
+
+const router = new Hono<IRunningContext>()
+
+router.post("/", async c => {
+  try {
+    const body = await c.req.json()
+    
+    // Authentication logic
+    const result = await processAuthentication(body)
+    
+    return c.json(result, 201)
+  } catch (error) {
+    console.error("Authentication error:", error)
+    return c.json({ error: "Authentication failed" }, 500)
+  }
+})
+
+export default router
+```
+
+### Route Registration in Main App
+
+```typescript
+// src/index.ts
+import aptosRouter from "@routes/aptos"
+import evmRouter from "@routes/evm"
+import onepRouter from "@routes/1p"
+import chainsRouter from "@routes/chains"
+
+const app = new Hono<IRunningContext>()
+
+app.route("/aptos", aptosRouter)
+app.route("/evm", evmRouter)
+app.route("/1p", onepRouter)
+app.route("/chains", chainsRouter)
+
+export default app
+```
+
+### Route Naming Conventions
+
+- **Use kebab-case** for route paths (`/authenticate`, `/register`, `/airdrop`)
+- **Use descriptive names** that match the API endpoint
+- **Group related routes** under common prefixes (`/aptos/*`, `/evm/*`, `/1p/*`)
+- **Use RESTful patterns** (`POST /authenticate`, `POST /register`, `GET /chains`)
+
+### Middleware Application
+
+```typescript
+// Apply middleware to specific routes
+router.use("*", useEVMWallet, useEVMChain)
+
+// Apply middleware to specific methods
+router.use("POST", useWalletAuth)
+
+// Apply middleware to specific paths
+router.use("/authenticate", useEVMThrottling)
+```
+
+### Route Handler Pattern
+
+```typescript
+router.post("/", async c => {
+  try {
+    const body = await c.req.json()
+
+    // Validation
+    if (!body.requiredField) {
+      return c.json({ error: "Missing required field" }, 400)
+    }
+
+    // Business logic
+    const result = await processRequest(body)
+
+    // Response
+    return c.json(result, 201)
+  } catch (error) {
+    console.error("Route error:", error)
+    return c.json({ error: "Internal server error" }, 500)
+  }
+})
+```
+
+## Security & Authentication
+
+### Multi-Chain Authentication
+
+- Use `useWalletAuth` middleware for EVM wallet verification
+- Support Aptos account-based authentication
+- Implement 1P Protocol authentication with encrypted payloads
+- Use signature verification with `recoverMessageAddress`
+- Store authentication state in context variables
+
+### Security Patterns
+
+- Hash-only storage keys for sensitive data
+- Validate signature formats before processing
+- Implement proper error handling without exposing internals
+- Use encrypted payloads for 1P Protocol
+- Support multiple authentication methods per chain type
+
+### Wallet Authentication Pattern
+
+```typescript
+// EVM Wallet Authentication
+export const useWalletAuth: MiddlewareHandler<IRunningContext> = async (c, next) => {
+  try {
+    const body = await c.req.json<WalletAuthPayload>()
+    const { encrypted_payload, signature } = body
+
+    // Parse and verify payload
+    const payload = JSON.parse(Buffer.from(encrypted_payload, 'hex').toString('utf-8'))
+    
+    // Verify signature
+    const recoveredAddress = await recoverMessageAddress({
+      message: payload.challenge_id || JSON.stringify(payload),
+      signature: signature as `0x${string}`,
+    })
+
+    // Attach to context
+    c.set("wallet_user", recoveredAddress as Address)
+    c.set("wallet_payload", payload)
+    c.set("wallet_signature", signature)
+
+    return next()
+  } catch (error) {
+    return c.json({ error: "Wallet authentication failed" }, 500)
+  }
+}
+```
+
+## Multi-Chain Integration
+
+### Chain Configuration
+
+- Use `ChainConfig` interface for chain-specific settings
+- Support both Aptos and EVM chains
+- Implement chain registry with `CHAIN_REGISTRY`
+- Use `getChainConfig()` for chain validation
+- Support multiple RPC endpoints and explorers
+
+### Blockchain Patterns
+
+- Use chain-aware clients with `getPublicClient(chainId)`
+- Implement multiple nonce management strategies (KV, D1, DO)
+- Handle transaction errors gracefully
+- Use proper gas estimation with chain-specific adjustments
+- Standardize transaction hashes as `Hash` type from viem
+
+### Chain Management Pattern
+
+```typescript
+// Chain configuration
+export interface ChainConfig {
+  chainId: number;
+  type: ChainType;
+  name: string;
+  contractAddress: string;
+  rpcUrl: string;
+  explorerUrl: string;
+}
+
+// Chain middleware
+export const useEVMChain: MiddlewareHandler<IRunningContext> = async (c, next) => {
+  const chainId = parseInt(c.req.header("CHAIN") || "102031")
+  const chainConfig = getChainConfig(chainId)
+  
+  if (!chainConfig) {
+    return c.json({ error: "Unsupported chain" }, 400)
+  }
+
+  c.set("chainId", chainId)
+  c.set("chainConfig", chainConfig)
+  c.set("chainType", "evm")
+  
+  return next()
+}
+```
+
+## Testing Strategy
+
+### Test Organization
+
+- Use HTTP files for API testing (`.http` files)
+- Organize tests by feature with dependencies
+- Use environment variables for configuration
+- Follow project-based test organization
+
+### Test File Naming & Structure
+
+- **Main test files**: `*.http` for API testing
+- **Integration tests**: `*.integration.http` for complex workflows
+- **Feature-specific tests**: `feature-name.http` (e.g., `auth.http`, `airdrop.http`)
+- **Chain-specific tests**: `chain-name.http` (e.g., `aptos.http`, `evm.http`)
+
+### HTTP Testing Patterns
+
+```http
+### Authentication Test
+POST {{baseUrl}}/evm/authenticate
+Content-Type: application/json
+
+{
+  "encrypted_payload": "{{encryptedPayload}}",
+  "signature": "{{signature}}"
+}
+
+### Registration Test
+POST {{baseUrl}}/1p/register
+Content-Type: application/json
+
+{
+  "pot_id": "test-pot-123",
+  "password": "test-password",
+  "legend": {"red": "up", "blue": "down"}
+}
+```
+
+### Test Best Practices
+
+- **Use descriptive test names** that explain the scenario
+- **Group related tests** with comments
+- **Handle async operations** with proper polling and timeouts
+- **Use environment variables** for test configuration
+- **Test both success and error cases**
+- **Verify response structure** with property assertions
+- **Test CORS headers** for browser compatibility
+
+## API Design
+
+### Response Patterns
+
+- Use consistent error response format
+- Include chain-specific headers for blockchain operations
+- Support multiple authentication methods
+- Implement proper CORS configuration
+
+### Error Handling
+
+```typescript
+// Standard error response
+return c.json({ 
+  error: "Authentication failed", 
+  details: "Invalid signature" 
+}, 400)
+
+// Success response
+return c.json({ 
+  success: true, 
+  token: "auth-token",
+  expires_at: Date.now() + 3600000 
+}, 201)
+```
+
+## Durable Objects
+
+### DO Pattern
+
+```typescript
+export class DurableObjectName extends DurableObject {
+  private state: DurableObjectState
+
+  constructor(state: DurableObjectState, env: Env) {
+    super(state, env)
+    this.state = state
+  }
+
+  async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url)
+    switch (url.pathname) {
+      case "/endpoint":
+        return this.handleEndpoint(request)
+      default:
+        return new Response("Not Found", { status: 404 })
+    }
+  }
+}
+```
+
+### DO Best Practices
+
+- Use in-memory state with periodic persistence
+- Implement atomic operations for critical data
+- Use `blockConcurrencyWhile()` for race condition prevention
+- Handle errors gracefully with proper HTTP status codes
+
+## Error Handling
+
+### Error Patterns
+
+- Use structured error responses
+- Log errors with proper context
+- Implement circuit breakers for external services
+- Handle connection timeouts gracefully
+- Use safe error messages without exposing internals
+
+## Performance & Observability
+
+### Optimization Strategies
+
+- Use connection pooling for external services
+- Implement caching with appropriate TTL
+- Use lazy loading for expensive resources
+- Implement circuit breakers for reliability
+
+### Monitoring
+
+- Use comprehensive logging with structured data
+- Include custom headers for blockchain operations
+- Implement health checks for service monitoring
+- Track errors with proper context
+
+## Development Workflow
+
+### Tooling
+
+- Use Bun as package manager and runtime
+- Use Wrangler for Cloudflare Workers deployment
+- Use Biome for linting and formatting
+- Use Just for task automation
+
+### Code Quality
+
+- Follow TypeScript strict mode
+- Use path aliases for clean imports
+- Maintain consistent naming conventions
+- Implement proper error handling
+- Write comprehensive tests
+
+## File Naming Conventions
+
+- Use kebab-case for files (`use-wallet-auth.ts`)
+- Use PascalCase for classes (`CredentialStore`)
+- Use camelCase for functions (`getChainConfig`)
+- Use UPPER_CASE for constants (`DEFAULT_CHAIN_ID`)
+
+## Variable Naming Conventions
+
+### General Patterns
+
+- **camelCase** for variables and functions (`walletUser`, `chainId`, `encryptedPayload`)
+- **PascalCase** for classes and interfaces (`CredentialStore`, `IRunningContext`)
+- **UPPER_CASE** for constants and environment variables (`DEFAULT_CHAIN_ID`, `CHAIN_REGISTRY`)
+- **kebab-case** for file names and URLs (`use-wallet-auth.ts`, `/evm/authenticate`)
+
+### Specific Naming Patterns
+
+- **Context variables**: Use descriptive names (`wallet_user`, `chainId`, `chainConfig`)
+- **Database keys**: Use prefixes with colons (`cred:`, `1p-`, `pot-`)
+- **Environment bindings**: Use descriptive names (`CREDENTIAL_STORE`, `LOCK_KV`)
+- **Chain-specific**: Include chain ID in names (`aptos-`, `evm-`, `1p-`)
+
+### Web3 Naming
+
+- **Addresses**: Use `Address` type from viem (`walletAddress`, `contractAddress`)
+- **Transaction hashes**: Use `Hash` type from viem (`txHash`, `signature`)
+- **Chain IDs**: Use numbers (`chainId`, `CHAIN_ID`)
+- **Token amounts**: Use descriptive names (`amount`, `balance`)
+
+## Import Patterns
+
+### Path Aliases (No Relative Imports)
+
+- **NEVER use `../../` syntax** - always use TypeScript path aliases
+- **Use descriptive aliases** for clean, maintainable imports
+- **Group imports** by type: external libraries, internal modules, types
+- **Use named exports** for utilities and **default exports** for main modules
+
+### Path Alias Usage Pattern
+
+```typescript
+// ✅ Correct: Use path aliases
+import { IRunningContext } from "@lib/context"
+import { useWalletAuth } from "@mw/useWalletAuth"
+import { CredentialStore } from "@db/credentialStore"
+import { getChainConfig } from "@config/networks"
+import { OnePEvm } from "@utils/onep"
+
+// ❌ Avoid: Relative imports
+import { IRunningContext } from "../../lib/context"
+import { useWalletAuth } from "../../mw/useWalletAuth"
+```
+
+### Available Path Aliases
+
+- `@types/*` → `./src/types/*`
+- `@routes/*` → `./src/routes/*`
+- `@config/*` → `./src/config/*`
+- `@utils/*` → `./src/utils/*`
+- `@db/*` → `./src/db/*`
+- `@mw/*` → `./src/mw/*`
+- `@lib/*` → `./src/lib/*`
+- `@web3/*` → `./src/web3/*`
+- `@durables/*` → `./durables/*`
+- `@abis/*` → `./src/abis/*`
+- `@/*` → `./*` (root-level imports)
+
+### Import Organization
+
+```typescript
+// 1. External libraries
+import { Hono } from "hono"
+import { Address, Hash } from "viem"
+import { AptosClient, AptosAccount } from "aptos"
+
+// 2. Internal modules (using path aliases)
+import { IRunningContext } from "@lib/context"
+import { useWalletAuth } from "@mw/useWalletAuth"
+import { CredentialStore } from "@db/credentialStore"
+
+// 3. Types (if separate)
+import type { ChainConfig } from "@config/networks"
+```
+
+## Logging Patterns
+
+### Authentication Logging with Context
+
+- **Use structured logging** with objects containing context
+- **Include `why` field** to explain the purpose of operations
+- **Log authentication details** with chain information and reasons
+- **Use descriptive context** for debugging and audit trails
+
+### Authentication Logging Pattern
+
+```typescript
+// ✅ Correct: Structured logging with context
+console.log({ walletUser, why: `authenticate on chain ${chainId}`, chain: chainConfig.name })
+console.log({ potId, why: `register 1P protocol`, chain: chainConfig.name })
+console.log({ signature, why: `verify wallet signature` })
+
+// ✅ Correct: Debug logging with context
+console.debug("useWalletAuth: signature verified", { recoveredAddress, payloadKeys: Object.keys(payload) })
+console.debug(`Chain middleware: ${chainConfig.name}`, { chainId, type: chainConfig.type })
+
+// ✅ Correct: Info logging with structured data
+console.info({ potId, reason: `1P registration successful` })
+console.info("Skipping authentication: not a wallet auth request")
+```
+
+### General Logging Patterns
+
+```typescript
+// ✅ Correct: Structured data logging
+console.log({ chainId, chainType })
+console.log({ walletUser, chainConfig })
+console.log("Processing authentication: ", chainConfig.name)
+
+// ✅ Correct: Error logging with context
+console.error("useWalletAuth: signature verification failed", err)
+console.error("Error processing chain configuration", err)
+
+// ✅ Correct: Warning logging
+console.warn("useEVMChain: unsupported chain requested", { chainId, supportedChains: getSupportedChainIds() })
+console.warn("useWalletAuth: payload parsing failed; proceeding without strict validation")
+```
+
+### Logging Best Practices
+
+- **Use structured objects** for complex data (`{ walletUser, why, chain }`)
+- **Include context** in error messages (`"useWalletAuth: signature verification failed"`)
+- **Use appropriate log levels** (`console.log`, `console.error`, `console.warn`, `console.info`, `console.debug`)
+- **Explain the purpose** with `why` or `reason` fields
+- **Include authentication details** (wallet address, chain ID, pot ID)
+- **Log both success and failure cases** for audit trails
+- **Use descriptive prefixes** for middleware/route identification
+
+## Environment Variables
+
+### Environment File Organization
+
+- **Always use `.env`** for local development
+- **Always provide `.env.example`** to document required environment variables
+- **Use descriptive names** with proper prefixes
+- **Document all required variables** with examples and descriptions
+- **Use Secrets Store** for sensitive data in production
+- **Implement proper fallbacks** with default values
+
+### Environment Variable Patterns
+
+```typescript
+// ✅ Correct: Environment variable usage with fallbacks
+export const DEFAULT_CHAIN_ID = process.env.DEFAULT_CHAIN_ID ? parseInt(process.env.DEFAULT_CHAIN_ID) : 2
+export const APTOS_RPC_URL = process.env.APTOS_RPC_URL || "https://fullnode.testnet.aptoslabs.com/v1"
+export const EVM_RPC_URL = process.env.EVM_RPC_URL || "https://rpc.creditcoin.network"
+
+// ✅ Correct: Environment variable validation
+const PRIVATE_KEY = process.env.ORACLE_PRIVATE_KEY as `0x${string}`
+if (!PRIVATE_KEY) {
+  throw new Error("ORACLE_PRIVATE_KEY environment variable is required")
+}
+```
+
+### .env.example Pattern
+
+```bash
+# Blockchain Configuration
+DEFAULT_CHAIN_ID=2
+APTOS_RPC_URL=https://fullnode.testnet.aptoslabs.com/v1
+EVM_RPC_URL=https://rpc.creditcoin.network
+
+# Oracle Configuration
+ORACLE_PRIVATE_KEY=0x1234567890abcdef1234567890abcdef12345678
+APTOS_CONTRACT_ADDRESS=0xea89ef9798a210009339ea6105c2008d8e154f8b5ae1807911c86320ea03ff3f
+
+# Development Configuration
+PORT=8787
+SERVER_URL=http://localhost:8787
+CI=false
+NOP=false
+```
+
+### Environment Variable Best Practices
+
+- **Use descriptive names** with clear prefixes (`APTOS_`, `EVM_`, `ORACLE_`)
+- **Provide meaningful defaults** where appropriate
+- **Validate required variables** with proper error messages
+- **Use type assertions** for known formats (`as \`0x${string}\``)
+- **Document variable purposes** in `.env.example`
+- **Group related variables** with comments
+- **Use consistent naming** across all environment files
+- **Handle missing variables** gracefully with fallbacks
+
+## Deployment
+
+- Use Wrangler for Cloudflare Workers deployment
+- Implement proper migrations for Durable Objects
+- Use environment-specific configurations
+- Monitor deployment health
+
+Remember: This is a production-grade multi-chain authentication service. Always prioritize security, reliability, and observability in your implementations.

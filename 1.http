@@ -1,0 +1,144 @@
+GET {{u}}/
+Content-Type: application/json
+
+> {%
+  const assert = require('assert');
+  const body = response.body;
+  console.log('Service Info Response:', body);
+  
+  if (response.status !== 200) {
+    throw new Error('Service info failed: ' + JSON.stringify(body));
+  }
+  
+  assert.ok(body.service, 'No service name returned');
+  assert.ok(body.version, 'No version returned');
+  assert.ok(body.endpoints, 'No endpoints returned');
+  console.log('✅ Service info retrieved successfully');
+%}
+###
+GET {{u}}/health
+Content-Type: application/json
+
+> {%
+  const assert = require('assert');
+  const body = response.body;
+  console.log('Health Check Response:', body);
+  
+  if (response.status !== 200) {
+    throw new Error('Health check failed: ' + JSON.stringify(body));
+  }
+  
+  assert.ok(body.service, 'No service name returned');
+  assert.ok(body.status === 'healthy', 'Service not healthy');
+  console.log('✅ Service is healthy');
+%}
+###
+POST {{u}}/register/options
+Content-Type: application/json
+
+> {%
+  const assert = require('assert');
+  const body = response.body;
+  console.log('RSA Key Pair Response:', body);
+  
+  if (response.status !== 200) {
+    throw new Error('RSA key generation failed: ' + JSON.stringify(body));
+  }
+  
+  assert.ok(body.public_key, 'No public key returned');
+  assert.ok(body.key_id, 'No key ID returned');
+  
+
+  client.global.set('RSA_PUBLIC_KEY',body.public_key);
+  client.global.set('RSA_KEY_ID',body.key_id);
+
+  
+  console.log('✅ RSA key pair generated successfully');
+  console.log('Key ID:', body.key_id);
+%}
+###
+
+{{
+  const forge = require('node-forge');
+  
+  // Mock pot data (in real scenario, this comes from blockchain)
+  const potId = 'pot_' + Math.random().toString(36).substr(2, 9);
+  const creatorAddress = '0x' + Math.random().toString(16).substr(2, 40);
+  const currentTime = Math.floor(Date.now() / 1000);
+  
+  // 1P Configuration
+  const password = 'A'; // Single character password
+  const legend = {
+    'A': 'Up',
+    'B': 'Down', 
+    'C': 'Left',
+    'D': 'Right'
+  };
+  
+  // Create payload
+  const payload = {
+    pot_id: potId,
+    '1p': password,
+    legend: legend,
+    iat: currentTime,
+    iss: creatorAddress,
+    '1fa_public_key': "",  
+    exp: currentTime + 3600 // 1 hour
+  };
+  
+  
+  
+  
+  // Encrypt payload with RSA public key
+  const encrypted = keypair.publicKey.encrypt(JSON.stringify(payload), 'RSA-OAEP', {
+    md: forge.md.sha256.create(),
+    mgf1: {
+      md: forge.md.sha256.create()
+    }
+  });
+  const encryptedHex = forge.util.bytesToHex(encrypted);
+  
+  // Create the JSON payload and set it directly as the request body
+  const requestPayload = {
+    encrypted_payload: encryptedHex,
+    public_key: publicKeyPem,
+    signature: mockSignature
+  };
+  
+  // Set the request body directly using the request object
+  request.body = JSON.stringify(requestPayload);
+
+  exports.encrypted_payload = encryptedHex
+  
+  console.log('✅ Payload encrypted and request body set');
+  console.log('Encrypted payload length:', encryptedHex.length);
+  console.log('Pot ID:', potId);
+  console.log('Creator Address:', creatorAddress);
+  console.log('Request body length:', request.body.length);
+  console.log('Request body preview:', request.body.substring(0, 200) + '...');
+}}
+
+POST {{u}}/register/verify
+Content-Type: application/json
+
+
+{
+  "encrypted_payload": {{encrypted_payload}}
+}
+
+> {%
+  const assert = require('assert');
+  const body = response.body;
+  console.log('Pot Registration Response:', body);
+  console.log('Response status:', response.status);
+  console.log('Response headers:', response.headers);
+  
+  if (response.status !== 200) {
+    console.log('❌ Registration failed with status:', response.status);
+    console.log('Error details:', body);
+    throw new Error('Pot registration failed: ' + JSON.stringify(body));
+  }
+  
+  assert.ok(body.success === true, 'Registration not successful');
+  console.log('✅ Pot registered successfully with 1P configuration');
+%}

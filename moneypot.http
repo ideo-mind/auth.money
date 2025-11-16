@@ -1,0 +1,5 @@
+GET {{u}}
+###
+GET {{u}}/chains
+###
+POST {{u}}/evm/register/options
