@@ -22,9 +22,7 @@ preview_id = "74f78514d5b14a82a3a0d6775f26f5da"
 EVM_ORACLE_ACCOUNT = "0xBAf5a46a2153207ff97993AC5c94179d2956ddF8"
 EVM_AIRDROP_ACCOUNT = "0x0B10339E9b98A8e6A7122FeB5D9B97e233142833"
 
-EVM_1P_VERIFIER_ACCOUNT = "0xBAf5a46a2153207ff97993AC5c94179d2956ddF8"
-
-# Legacy Aptos configuration (can be removed after migration)
+# Legacy Aptos configuration
 APTOS_NODE_URL = "https://fullnode.testnet.aptoslabs.com/v1"
 APTOS_MONEY_POT_ADDRESS = "0xea89ef9798a210009339ea6105c2008d8e154f8b5ae1807911c86320ea03ff3f"
 

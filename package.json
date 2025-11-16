@@ -1,13 +1,14 @@
 {
   "name": "money-auth",
   "private": "true",
-  "description": "Money Pot Verifier Service - 1P Authentication Protocol",
+  "description": "MoneyPot Authentication Service - Multi-chain wallet verification for treasure hunting",
   "keywords": [
     "aptos",
-    "1p",
+    "evm",
     "authentication",
     "money-pot",
-    "verifier"
+    "blockchain",
+    "wallet-verification"
   ],
   "author": {
     "name": "Hiro",

@@ -1,6 +1,6 @@
 import { Context, Next } from "hono"
 import { IRunningContext } from "@lib/context"
-import { creditcoinTestnet, getChain, getPublicClient } from "@config/viem"
+import { getChain, getPublicClient } from "@config/viem"
 import { abi } from "@abis/MoneyPot.json"
 import { getPrimaryWallet } from "../web3/walletFactory"
 import {
@@ -8,13 +8,8 @@ import {
   isChainSupported,
   ChainConfig,
   getMoneyPotContractAddress,
-  getOnePContractAddress,
 } from "@config/networks"
 import { BlockchainClientFactory } from "@lib/blockchain"
-import { OnePEvm } from "@utils/onep"
-import { abi as onepAbi } from "@abis/OneP.json"
-import { createWalletClient, http } from "viem"
-import { privateKeyToAccount } from "viem/accounts"
 
 /**
  * EVM Wallet Middleware with Chain Detection and Nonce Management
@@ -84,92 +79,27 @@ export const useEVMWallet = async (c: Context<IRunningContext>, next: Next) => {
     c.set("evmOracleAccount", walletClient.account! as any)
     c.set("nonceManagementEnabled", true)
 
-    // Detect if this is a 1P route or EVM route
-    const path = c.req.path
-    const isOnePRoute = path.startsWith("/1p/")
-
-    let contractAddress: `0x${string}`
-    let contractABI: any
-
-    if (isOnePRoute) {
-      // Use OneP contract for 1P routes
-      const onepAddress = getOnePContractAddress(chainId)
-      if (!onepAddress) {
-        return c.json(
-          {
-            error: `OneP contract not deployed on chain ${chainId}`,
-          },
-          400
-        )
-      }
-      contractAddress = onepAddress as `0x${string}`
-      contractABI = onepAbi
-
-      // Create separate 1P verifier wallet client
-      const verifierAccount = c.env.EVM_1P_VERIFIER_ACCOUNT
-      if (!verifierAccount) {
-        return c.json(
-          {
-            error: "EVM_1P_VERIFIER_ACCOUNT not configured in environment",
-          },
-          500
-        )
-      }
-
-      // Get verifier private key from environment
-      const verifierPrivateKey = (c.env as any)[
-        `PRIVATE_KEY_${verifierAccount}`
-      ]
-      if (!verifierPrivateKey) {
-        return c.json(
-          {
-            error: `PRIVATE_KEY_${verifierAccount} not configured in environment`,
-          },
-          500
-        )
-      }
-
-      // Create verifier account and wallet client
-      const verifierAccountObj = privateKeyToAccount(
-        verifierPrivateKey as `0x${string}`
+    // Use MoneyPot contract for EVM routes
+    const moneypotAddress = getMoneyPotContractAddress(chainId)
+    if (!moneypotAddress) {
+      return c.json(
+        {
+          error: `MoneyPot contract not deployed on chain ${chainId}`,
+        },
+        400
       )
-      const verifierWalletClient = createWalletClient({
-        account: verifierAccountObj,
-        chain: creditcoinTestnet,
-        transport: http(),
-      })
-
-      // Create OneP client with verifier wallet
-      const onepClient = new OnePEvm(
-        publicClient,
-        verifierWalletClient,
-        contractAddress
-      )
-      c.set("onepClient", onepClient)
-      c.set("onepVerifierAccount", verifierAccountObj)
-    } else {
-      // Use MoneyPot contract for EVM routes
-      const moneypotAddress = getMoneyPotContractAddress(chainId)
-      if (!moneypotAddress) {
-        return c.json(
-          {
-            error: `MoneyPot contract not deployed on chain ${chainId}`,
-          },
-          400
-        )
-      }
-      contractAddress = moneypotAddress as `0x${string}`
-      contractABI = abi
-
-      // Create EVM blockchain client using context clients
-      const evmClient = BlockchainClientFactory.createEVMWithContext(
-        chainConfig,
-        publicClient,
-        walletClient,
-        contractAddress
-      )
-      c.set("evmClient", evmClient)
     }
+    const contractAddress = moneypotAddress as `0x${string}`
+    const contractABI = abi
+
+    // Create EVM blockchain client using context clients
+    const evmClient = BlockchainClientFactory.createEVMWithContext(
+      chainConfig,
+      publicClient,
+      walletClient,
+      contractAddress
+    )
+    c.set("evmClient", evmClient)
 
     // Store chain information in context
     c.set("chainType", "evm")
@@ -183,8 +113,6 @@ export const useEVMWallet = async (c: Context<IRunningContext>, next: Next) => {
       "moneypotTokenAddress",
       chainConfig.contracts.moneypot?.token?.address
     )
-    c.set("onepContractAddress", getOnePContractAddress(chainId) || undefined)
-    c.set("onepTokenAddress", chainConfig.contracts.onep?.token?.address)
 
     // EVM wallet middleware initialized
 

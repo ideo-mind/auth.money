@@ -30,15 +30,6 @@ export interface ChainConfig {
         decimals: number
       }
     }
-    onep?: {
-      address: string
-      token?: {
-        address: string
-        symbol: string
-        name: string
-        decimals: number
-      }
-    }
   }
 }
 
@@ -56,12 +47,6 @@ function evmToChainConfig(evmChain: Chain): ChainConfig {
         ? {
             address: (evmChain.custom as any).moneypot.address,
             token: (evmChain.custom as any).moneypot.token,
-          }
-        : undefined,
-      onep: (evmChain.custom as any)?.onep
-        ? {
-            address: (evmChain.custom as any).onep.address,
-            token: (evmChain.custom as any).onep.token,
           }
         : undefined,
     },
@@ -136,22 +121,6 @@ export function getMoneyPotContractAddress(chainId: number): string | null {
 export function getMoneyPotTokenAddress(chainId: number): string | null {
   const config = getChainConfig(chainId)
   return config?.contracts.moneypot?.token?.address || null
-}
-
-/**
- * Get OneP contract address for a chain
- */
-export function getOnePContractAddress(chainId: number): string | null {
-  const config = getChainConfig(chainId)
-  return config?.contracts.onep?.address || null
-}
-
-/**
- * Get OneP token address for a chain
- */
-export function getOnePTokenAddress(chainId: number): string | null {
-  const config = getChainConfig(chainId)
-  return config?.contracts.onep?.token?.address || null
 }
 
 /**
