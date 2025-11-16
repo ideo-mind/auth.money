@@ -2,7 +2,63 @@
 
 A production-grade authentication service for MoneyPot, providing multi-chain wallet verification for treasure hunting games on Aptos and EVM-compatible blockchains, including **Polkadot Hub Testnet (Passet)**.
 
-## 🎯 Hackathon Submission
+## 🎯 Hackathon Submissions
+
+### Arkiv Network Main Track
+
+**Project**: MoneyPot - Decentralized Challenge Session Storage with Arkiv Network
+
+This submission demonstrates a production-ready integration of **Arkiv Network** for decentralized challenge session management in a multi-chain treasure hunting authentication service.
+
+#### 📊 Architecture & Diagrams
+
+See **[ARCHITECTURE.md](./ARCHITECTURE.md)** for detailed architecture diagrams, data flow, and system design using Mermaid diagrams.
+
+#### 🎬 Demo Video
+
+**Link**: [To be added - 2-3 minute demo video]
+
+#### 🚀 Live Demo
+
+- **Authentication Backend**: https://auth.money-pot.ideomind.org
+- **Arkiv-Powered App**: https://money-pot.ideomind.org
+
+#### 💡 How Arkiv is Used
+
+**Challenge Session Storage**: MoneyPot uses Arkiv Network as a decentralized storage layer for challenge session management:
+
+1. **Challenge Creation**: When a user starts a treasure hunt, challenge sessions are stored in Arkiv with:
+   - Entity type: `challenge`
+   - Attributes: `type`, `challengeId`
+   - TTL: 10 minutes (automatic expiration)
+
+2. **Challenge Verification**: When verifying solutions, we query Arkiv using the query builder:
+   ```typescript
+   publicClient.buildQuery()
+     .where([
+       eq("type", "challenge"),
+       eq("challengeId", attempt_id),
+     ])
+     .fetch()
+   ```
+
+3. **Automatic Cleanup**: Challenges automatically expire via Arkiv's TTL mechanism, eliminating the need for manual session management.
+
+**Benefits**:
+- ✅ Decentralized storage (no dependency on Cloudflare KV)
+- ✅ Automatic expiration via TTL
+- ✅ On-chain transparency
+- ✅ Cost-effective and resilient
+
+See **[ARCHITECTURE.md](./ARCHITECTURE.md)** for detailed diagrams and implementation details.
+
+#### 📚 How to Run
+
+See [Setup Instructions](#setup-instructions) below for full deployment guide.
+
+---
+
+### Polkadot Builder Party Hackathon
 
 **Project**: MoneyPot - Multi-Chain Treasure Hunting Authentication
 
@@ -49,15 +105,17 @@ MoneyPot Authentication Service is a Cloudflare Workers-based API that enables s
 - **Encrypted Challenges**: RSA-encrypted password challenges for treasure hunting
 - **Public API**: All endpoints use public RPC endpoints (no API keys required)
 - **Cloudflare Workers**: Edge computing for low latency and global distribution
-- **Arkiv Integration**: Decentralized challenge storage on Arkiv Network
+- **⭐ Arkiv Integration**: Decentralized challenge storage on Arkiv Network with automatic TTL expiration
 
 ## Architecture
 
 - **Runtime**: Cloudflare Workers (Hono framework)
-- **Database**: Cloudflare KV for persistent storage
+- **Database**: Cloudflare KV for persistent storage (pot configs, attempts)
 - **Blockchain**: Aptos and EVM-compatible chains (including Polkadot Hub)
-- **Storage**: Arkiv Network for challenge storage (decentralized, TTL-based)
+- **Storage**: **Arkiv Network** for challenge storage (decentralized, TTL-based) ⭐
 - **Crypto**: RSA encryption/decryption, ECDSA signature verification
+
+**📊 See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed architecture diagrams and data flow.**
 
 ## API Endpoints
 
@@ -284,6 +342,21 @@ All configuration is hardcoded in `src/config/`:
 
 All RPC endpoints are public (no API keys required).
 
+### Arkiv Network Configuration
+
+The service uses **Arkiv Network Mendoza Testnet** for decentralized challenge storage:
+
+- **Chain ID**: `60138453056`
+- **RPC**: `https://mendoza.hoodi.arkiv.network/rpc`
+- **WebSocket**: `wss://mendoza.hoodi.arkiv.network/rpc/ws`
+- **Explorer**: `https://explorer.mendoza.hoodi.arkiv.network`
+- **SDK**: `@arkiv-network/sdk@^0.4.4`
+
+**Environment Variables Required**:
+- `ORACLE_PRIVATE_KEY_EVM`: Private key for Arkiv write operations (EVM format `0x...`)
+
+**Configuration Location**: `src/config/viem.ts`
+
 ### Polkadot Hub Configuration
 
 The service is configured for Polkadot Hub Testnet with:
@@ -292,6 +365,45 @@ The service is configured for Polkadot Hub Testnet with:
 - RPC: `https://testnet-passet-hub-eth-rpc.polkadot.io`
 - Explorer: `https://blockscout-passet-hub.parity-testnet.parity.io`
 - Native Token: Passet (PAS)
+
+## Testing Arkiv Integration
+
+### Prerequisites
+
+1. **Private Key Setup**: Ensure `ORACLE_PRIVATE_KEY_EVM` is set in your environment (for Cloudflare Workers secrets or `.dev.vars` for local development)
+
+2. **Funded Wallet**: The private key must have ETH on Arkiv Mendoza Testnet for write operations
+
+### Testing Challenge Storage
+
+1. **Start a treasure hunt** via the frontend: https://money-pot.ideomind.org
+
+2. **Monitor Arkiv Operations**: Check the Cloudflare Workers logs for:
+   - `Creating Arkiv wallet client...`
+   - `Storing challenge in Arkiv...`
+   - `Challenge stored in Arkiv successfully`
+   - `Querying challenge from Arkiv...`
+   - `Challenge found in Arkiv`
+
+3. **Query on Arkiv Explorer**: Visit https://explorer.mendoza.hoodi.arkiv.network to see challenge entities
+
+4. **Verify Auto-Expiration**: Challenges automatically expire after 10 minutes (600 seconds TTL)
+
+### Code Examples
+
+**Challenge Creation**:
+```typescript
+// src/db/challengeStore.ts
+await ChallengeStore.setChallenge(env, challengeId);
+```
+
+**Challenge Query**:
+```typescript
+// src/db/challengeStore.ts
+const exists = await ChallengeStore.getChallenge(env, challengeId);
+```
+
+See `src/db/challengeStore.ts` for the full implementation.
 
 ## Testing on Polkadot Hub
 
@@ -317,9 +429,10 @@ The service is configured for Polkadot Hub Testnet with:
 
 - RSA encryption for sensitive data (2048-bit keys)
 - ECDSA signature verification for wallet authentication
-- Time-based challenge expiry (5 minutes)
-- One-time use challenges (deleted after verification)
+- Time-based challenge expiry via Arkiv TTL (10 minutes)
+- One-time use challenges (automatically expired via Arkiv TTL)
 - Blockchain integration for pot and attempt validation
+- Decentralized challenge storage (no single point of failure)
 
 ## Tech Stack
 
@@ -329,7 +442,10 @@ The service is configured for Polkadot Hub Testnet with:
 - **Blockchain SDKs**:
   - Viem (EVM chains)
   - Aptos SDK
-  - Arkiv SDK
+  - **@arkiv-network/sdk@^0.4.4** (Arkiv Network integration) ⭐
+- **Storage**:
+  - Cloudflare KV (pot configs, attempts)
+  - **Arkiv Network** (challenge sessions with TTL) ⭐
 - **Crypto**: node-forge, crypto
 - **Package Manager**: Bun
 
