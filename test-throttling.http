@@ -1,0 +1,60 @@
+### Test Request Throttling - Selective Implementation
+### This tests the selective throttling that only applies to routes with Aptos blockchain operations
+
+### Test 1: Non-throttled routes (should work normally)
+###
+GET {{u}}/health
+###
+GET {{u}}/
+###
+POST {{u}}/debug
+Content-Type: application/json
+
+{
+  "test": "non-throttled",
+  "timestamp": "{{$timestamp}}"
+}
+
+### Test 2: Throttled routes - Authentication (should be throttled)
+### Run these requests simultaneously to test throttling
+###
+POST {{u}}/authenticate/options
+Content-Type: application/json
+X-Request-ID: auth-1
+
+{
+  "payload": {"attempt_id": "test-1"},
+  "public_key": "0x1234567890abcdef"
+}
+###
+POST {{u}}/authenticate/options
+Content-Type: application/json
+X-Request-ID: auth-2
+
+{
+  "payload": {"attempt_id": "test-2"},
+  "public_key": "0x1234567890abcdef"
+}
+###
+POST {{u}}/authenticate/options
+Content-Type: application/json
+X-Request-ID: auth-3
+
+{
+  "payload": {"attempt_id": "test-3"},
+  "public_key": "0x1234567890abcdef"
+}
+
+### Test 3: Throttled routes - Registration (should be throttled)
+###
+POST {{u}}/register/options
+Content-Type: application/json
+X-Request-ID: reg-1
+###
+POST {{u}}/register/options
+Content-Type: application/json
+X-Request-ID: reg-2
+###
+POST {{u}}/register/options
+Content-Type: application/json
+X-Request-ID: reg-3

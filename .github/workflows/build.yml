@@ -1,0 +1,46 @@
+name: Build Check
+
+on:
+  push:
+    branches:
+      - "main"
+    tags:
+      - "**"
+  pull_request:
+    branches:
+      - "main"
+
+env:
+  CI: true
+
+# Ensure only one build check runs at a time per branch/PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build Check
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Create .env from secret
+        run: |
+          echo "$ENV" > .env
+          ln -s .env .dev.vars
+        env:
+          ENV: ${{ secrets.ENV }}
+
+      - name: Install dependencies
+        run: bun install
+      - name: Run Wrangler build
+        run: bun wrangler build
+
+      - name: Run TypeScript type check
+        run: bun x tsc --noEmit

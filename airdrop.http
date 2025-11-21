@@ -1,0 +1,117 @@
+{{
+  const { ethers } = require('ethers');
+  
+  // Configuration for airdrop
+  const PRIVATE_KEY = ethers.Wallet.createRandom().privateKey;
+
+;
+  const AMOUNT = 200;
+  const MESSAGE = "Claim airdrop";
+  
+  // Create wallet from private key
+  const provider = new ethers.JsonRpcProvider(this.RPC || "https://rpc.creditcoin.network");
+  const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+  const address = wallet.address;
+
+  console.log("Address is", address);
+  
+  // Current time
+  const currentTime = Math.floor(Date.now() / 1000);
+  
+  // Create airdrop payload
+  const payload = {
+    amount: AMOUNT,
+    message: MESSAGE,
+    chain_id: 102031,
+    iat: currentTime,
+    iss: address,
+    exp: currentTime + 3600 // 1 hour
+  };
+  
+  // Sign the payload
+  const message = JSON.stringify(payload);
+  const signature = await wallet.signMessage(message);
+  
+  // Convert payload to hex-encoded string (as expected by middleware)
+  const encryptedPayload = Buffer.from(message, 'utf-8').toString('hex');
+  
+  // Export variables for use in request body
+  exports.encrypted_payload = encryptedPayload;
+  exports.signature = signature;
+  exports.RANDOM_PRIVATE_KEY = PRIVATE_KEY;
+}}
+POST {{u}}/evm/airdrop
+Content-Type: application/json
+MONEYPOT_CHAIN: 102031
+
+
+{
+    "encrypted_payload": "{{encrypted_payload}}",
+    "signature": "{{signature}}"
+}
+
+> {%
+
+  const assert = require('assert');
+  const body = response.body;
+
+  assert.ok(body.success === true, 'Registration not successful');
+  client.global.set('RANDOM_PRIVATE_KEY', this.RANDOM_PRIVATE_KEY);
+
+%}
+###
+{{
+  const { ethers } = require('ethers');
+  
+  // Configuration for airdrop
+  const PRIVATE_KEY = "0x0fc141c20abc534bceab541c964be29b007f820a2c1f58b10ae44f5e377337af";
+;
+  const AMOUNT = 200;
+  const MESSAGE = "Claim airdrop";
+  
+  // Create wallet from private key
+  const provider = new ethers.JsonRpcProvider(this.RPC || "https://rpc.creditcoin.network");
+  const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+  const address = wallet.address;
+  
+  // Current time
+  const currentTime = Math.floor(Date.now() / 1000);
+  
+  // Create airdrop payload
+  const payload = {
+    amount: AMOUNT,
+    message: MESSAGE,
+    chain_id: this.CHAIN_ID ?? 102031,
+    iat: currentTime,
+    iss: address,
+    exp: currentTime + 3600 // 1 hour
+  };
+  
+  // Sign the payload
+  const message = JSON.stringify(payload);
+  const signature = await wallet.signMessage(message);
+  
+  // Convert payload to hex-encoded string (as expected by middleware)
+  const encryptedPayload = Buffer.from(message, 'utf-8').toString('hex');
+  
+  // Export variables for use in request body
+  exports.encrypted_payload = encryptedPayload;
+  exports.signature = signature;
+  exports.RANDOM_PRIVATE_KEY = PRIVATE_KEY;
+}}
+POST {{u}}/evm/airdrop
+Content-Type: application/json
+MONEYPOT_CHAIN: 102031
+
+
+{
+    "encrypted_payload": "{{encrypted_payload}}",
+    "signature": "{{signature}}"
+}
+
+> {%
+
+  const assert = require('assert');
+  const body = response.body;
+
+%}

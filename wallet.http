@@ -1,0 +1,372 @@
+### Variables
+@u = https://auth.1p.ideomind.org
+@chainId = 102031
+@onepUser = user_ccy7k7dr
+@onepPassword = A
+@creatorPrivateKey = 0x1BD326324f2755ca5eFdb84C799eaaCC55830581
+
+### Pre-script: Setup wallet and authentication
+{{
+  const { ethers } = require('ethers');
+  
+  // Configuration
+  const PRIVATE_KEY = this.creatorPrivateKey || this.EVM_CREATOR_PRIVATE_KEY || "0x1BD326324f2755ca5eFdb84C799eaaCC55830581";
+  const ONEP_USER = this.onepUser || "user_ccy7k7dr";
+  const ONEP_PASSWORD = this.onepPassword || "A";
+  const CHAIN_ID = 102031;
+  
+  // Validate private key
+  if (!PRIVATE_KEY || PRIVATE_KEY.length < 64) {
+    throw new Error('Invalid private key: ' + PRIVATE_KEY);
+  }
+  
+  // Create wallet from private key
+  const provider = new ethers.JsonRpcProvider("https://rpc.creditcoin.network");
+  const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+  const address = wallet.address;
+  
+  console.log("🔑 Wallet Address:", address);
+  console.log("👤 1P User:", ONEP_USER);
+  console.log("🔐 1P Password:", ONEP_PASSWORD);
+  console.log("🔑 Private Key (first 10 chars):", PRIVATE_KEY.substring(0, 10) + "...");
+  
+  // Current time for JWT-like payload
+  const currentTime = Math.floor(Date.now() / 1000);
+  
+  // Create authentication payload
+  const payload = {
+    onePUser: ONEP_USER,
+    "1p": ONEP_PASSWORD,
+    legend: {
+      red: "U",
+      green: "D", 
+      blue: "L",
+      yellow: "R"
+    },
+    iat: currentTime,
+    iss: address,
+    exp: currentTime + 3600 // 1 hour
+  };
+  
+  // Sign the payload (use compact JSON format to match backend)
+  const message = JSON.stringify(payload, null, 0).replace(/\s/g, '');
+  const signature = await wallet.signMessage(message);
+  
+  // Convert payload to hex-encoded string
+  const encryptedPayload = Buffer.from(message, 'utf-8').toString('hex');
+  
+  // Export variables for use in requests
+  exports.encrypted_payload = encryptedPayload;
+  exports.signature = signature;
+  exports.wallet_address = address;
+  exports.onep_user = ONEP_USER;
+  exports.onep_password = ONEP_PASSWORD;
+  
+  console.log("✅ Pre-script setup complete");
+  console.log("🔍 Debug exported variables:");
+  console.log("  encrypted_payload length:", encryptedPayload.length);
+  console.log("  signature length:", signature.length);
+  console.log("  wallet_address:", address);
+  console.log("  onep_user:", ONEP_USER);
+}}
+
+### 1. Get Chain Configuration
+GET {{u}}/1p/chains
+Content-Type: application/json
+
+> {%
+  const assert = require('assert');
+  const body = response.body;
+  console.log('🔗 Chain Config Response:', body);
+  
+  if (response.status !== 200) {
+    throw new Error('Chain config failed: ' + JSON.stringify(body));
+  }
+  
+  assert.ok(body.rpcUrl, 'No RPC URL returned');
+  assert.ok(body.custom && body.custom.onep, 'No OneP contract info returned');
+  
+  // Store chain config for later use
+  exports.rpc_url = body.rpcUrl;
+  exports.onep_contract = body.custom.onep.address;
+  exports.explorer_url = body.explorerUrl;
+  
+  console.log('✅ Chain configuration retrieved');
+  console.log('   RPC URL:', body.rpcUrl);
+  console.log('   OneP Contract:', body.custom.onep.address);
+%}
+
+### 2. Request Authentication Attempt
+POST {{u}}/1p/authenticate/options
+Content-Type: application/json
+MONEYPOT_CHAIN: {{chainId}}
+
+{
+    "encrypted_payload": "{{encrypted_payload}}",
+    "signature": "{{signature}}"
+}
+
+> {%
+  // Debug: Check if variables are properly set
+  console.log('🔍 Debug variables:');
+  console.log('  encrypted_payload length:', exports.encrypted_payload ? exports.encrypted_payload.length : 'undefined');
+  console.log('  signature length:', exports.signature ? exports.signature.length : 'undefined');
+  
+  const assert = require('assert');
+  const body = response.body;
+  console.log('🎯 Authentication Options Response:', body);
+  
+  if (response.status !== 200) {
+    throw new Error('Authentication options failed: ' + JSON.stringify(body));
+  }
+  
+  assert.ok(body.challenges, 'No challenges returned');
+  assert.ok(body.challenge_id, 'No challenge ID returned');
+  
+  // Store challenge data
+  exports.challenge_id = body.challenge_id;
+  exports.challenges = body.challenges;
+  
+  console.log('✅ Authentication attempt created');
+  console.log('   Challenge ID:', body.challenge_id);
+  console.log('   Challenges:', body.challenges.length);
+%}
+
+### 3. Sign Message (personal_sign equivalent)
+POST {{u}}/1p/authenticate/verify
+Content-Type: application/json
+MONEYPOT_CHAIN: {{chainId}}
+
+{{
+  // Solve 1P challenges
+  const solutions = [];
+  const password = exports.onep_password;
+  const legend = { red: "U", green: "D", blue: "L", yellow: "R" };
+  
+  for (const challenge of exports.challenges) {
+    // Simple challenge solving logic (same as Python demo)
+    const colorGroups = challenge.colorGroups;
+    let solution = null;
+    
+    for (const [color, positions] of Object.entries(colorGroups)) {
+      for (const pos of positions) {
+        if (challenge.grid[pos] === password) {
+          solution = legend[color];
+          break;
+        }
+      }
+      if (solution) break;
+    }
+    
+    solutions.push(solution || "U"); // Default fallback
+  }
+  
+  console.log("🧩 Solved challenges:", solutions);
+  
+  // Create payload to sign (message)
+  const payloadToSign = {
+    type: "message",
+    data: {
+      message: "Hello, 1P Wallet! This is a test message."
+    }
+  };
+  
+  // Create verification payload
+  const verifyPayload = {
+    challenge_id: exports.challenge_id,
+    solutions: solutions,
+    payloadToSign: payloadToSign
+  };
+  
+  // Sign the verification payload
+  const { ethers } = require('ethers');
+  const wallet = new ethers.Wallet(this.creatorPrivateKey || this.EVM_CREATOR_PRIVATE_KEY || "0x1BD326324f2755ca5eFdb84C799eaaCC55830581");
+  const message = JSON.stringify(verifyPayload, null, 0).replace(/\s/g, '');
+  const signature = await wallet.signMessage(message);
+  
+  // Convert to hex
+  const encryptedPayload = Buffer.from(message, 'utf-8').toString('hex');
+  
+  exports.verify_payload = encryptedPayload;
+  exports.verify_signature = signature;
+}}
+
+{
+    "encrypted_payload": "{{verify_payload}}",
+    "signature": "{{verify_signature}}"
+}
+
+> {%
+  const assert = require('assert');
+  const body = response.body;
+  console.log('✍️ Message Signing Response:', body);
+  
+  if (response.status !== 200) {
+    throw new Error('Message signing failed: ' + JSON.stringify(body));
+  }
+  
+  assert.ok(body.success, 'Authentication not successful');
+  assert.ok(body.signed, 'No signed data returned');
+  assert.ok(body.signed.signature, 'No signature returned');
+  assert.ok(body.signed.signer, 'No signer returned');
+  
+  console.log('✅ Message signed successfully!');
+  console.log('   Type:', body.signed.type);
+  console.log('   Signer:', body.signed.signer);
+  console.log('   Signature:', body.signed.signature.substring(0, 20) + '...');
+  
+  // Store signing result
+  exports.message_signature = body.signed.signature;
+  exports.custodial_address = body.signed.signer;
+%}
+
+### 4. Sign Transaction (eth_signTransaction equivalent)
+POST {{u}}/1p/authenticate/options
+Content-Type: application/json
+MONEYPOT_CHAIN: {{chainId}}
+
+{
+    "encrypted_payload": "{{encrypted_payload}}",
+    "signature": "{{signature}}"
+}
+
+> {%
+  const assert = require('assert');
+  const body = response.body;
+  console.log('🎯 New Authentication Options Response:', body);
+  
+  if (response.status !== 200) {
+    throw new Error('Authentication options failed: ' + JSON.stringify(body));
+  }
+  
+  assert.ok(body.challenges, 'No challenges returned');
+  assert.ok(body.challenge_id, 'No challenge ID returned');
+  
+  // Store new challenge data
+  exports.challenge_id_2 = body.challenge_id;
+  exports.challenges_2 = body.challenges;
+  
+  console.log('✅ New authentication attempt created');
+  console.log('   Challenge ID:', body.challenge_id);
+%}
+
+POST {{u}}/1p/authenticate/verify
+Content-Type: application/json
+MONEYPOT_CHAIN: {{chainId}}
+
+{{
+  // Solve 1P challenges for transaction signing
+  const solutions = [];
+  const password = exports.onep_password;
+  const legend = { red: "U", green: "D", blue: "L", yellow: "R" };
+  
+  for (const challenge of exports.challenges_2) {
+    const colorGroups = challenge.colorGroups;
+    let solution = null;
+    
+    for (const [color, positions] of Object.entries(colorGroups)) {
+      for (const pos of positions) {
+        if (challenge.grid[pos] === password) {
+          solution = legend[color];
+          break;
+        }
+      }
+      if (solution) break;
+    }
+    
+    solutions.push(solution || "U");
+  }
+  
+  console.log("🧩 Solved challenges for transaction:", solutions);
+  
+  // Create transaction payload to sign
+  const transaction = {
+    to: "0x1234567890123456789012345678901234567890", // Dummy recipient
+    value: "0x16345785d8a0000", // 0.1 ETH in hex
+    gas: "0x5208", // 21000 gas
+    gasPrice: "0x3b9aca00" // 1 gwei
+  };
+  
+  const payloadToSign = {
+    type: "transaction",
+    data: {
+      transaction: transaction
+    }
+  };
+  
+  // Create verification payload
+  const verifyPayload = {
+    challenge_id: exports.challenge_id_2,
+    solutions: solutions,
+    payloadToSign: payloadToSign
+  };
+  
+  // Sign the verification payload
+  const { ethers } = require('ethers');
+  const wallet = new ethers.Wallet(this.creatorPrivateKey || this.EVM_CREATOR_PRIVATE_KEY || "0x1BD326324f2755ca5eFdb84C799eaaCC55830581");
+  const message = JSON.stringify(verifyPayload, null, 0).replace(/\s/g, '');
+  const signature = await wallet.signMessage(message);
+  
+  // Convert to hex
+  const encryptedPayload = Buffer.from(message, 'utf-8').toString('hex');
+  
+  exports.verify_payload_2 = encryptedPayload;
+  exports.verify_signature_2 = signature;
+}}
+
+{
+    "encrypted_payload": "{{verify_payload_2}}",
+    "signature": "{{verify_signature_2}}"
+}
+
+> {%
+  const assert = require('assert');
+  const body = response.body;
+  console.log('📝 Transaction Signing Response:', body);
+  
+  if (response.status !== 200) {
+    throw new Error('Transaction signing failed: ' + JSON.stringify(body));
+  }
+  
+  assert.ok(body.success, 'Authentication not successful');
+  assert.ok(body.signed, 'No signed data returned');
+  assert.ok(body.signed.signedTransaction, 'No signed transaction returned');
+  assert.ok(body.signed.signer, 'No signer returned');
+  
+  console.log('✅ Transaction signed successfully!');
+  console.log('   Type:', body.signed.type);
+  console.log('   Signer:', body.signed.signer);
+  console.log('   Signed Transaction:', body.signed.signedTransaction.substring(0, 50) + '...');
+  
+  // Store signing result
+  exports.signed_transaction = body.signed.signedTransaction;
+  
+  console.log('💡 Ready for broadcasting with eth_sendRawTransaction');
+  console.log('   Raw Transaction:', body.signed.signedTransaction);
+%}
+
+### 5. Summary - 1P Wallet Signer Interface Results
+GET {{u}}/health
+Content-Type: application/json
+
+> {%
+  console.log('🎉 1P Wallet Signer Interface Demo Complete!');
+  console.log('='.repeat(50));
+  console.log('📊 Results Summary:');
+  console.log('   👤 1P User:', exports.onep_user);
+  console.log('   🔑 Custodial Address:', exports.custodial_address);
+  console.log('   ✍️ Message Signature:', exports.message_signature ? '✅ Success' : '❌ Failed');
+  console.log('   📝 Transaction Signed:', exports.signed_transaction ? '✅ Success' : '❌ Failed');
+  console.log('');
+  console.log('🚀 Ethereum RPC Compatibility:');
+  console.log('   ✅ personal_sign equivalent');
+  console.log('   ✅ eth_signTransaction equivalent');
+  console.log('   ✅ eth_sendRawTransaction ready');
+  console.log('');
+  console.log('💡 Frontend Integration:');
+  console.log('   - Use custodial address as user account');
+  console.log('   - Trigger 1P auth for signing operations');
+  console.log('   - Receive signed data from backend');
+  console.log('   - Broadcast transactions with eth_sendRawTransaction');
+  console.log('='.repeat(50));
+%}

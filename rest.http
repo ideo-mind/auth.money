@@ -1,0 +1,56 @@
+GET {{u}}/evm/register/options
+###
+{{
+  const { ethers } = require('ethers');
+  
+  // Configuration for pot_id 1
+  const PRIVATE_KEY = this.EVM_CREATOR_PRIVATE_KEY;
+  const POT_ID = "100";
+  const PASSWORD = "A";
+  const EXPIRY_SECONDS = 3600; // 1 hour
+  
+  // Create wallet from private key
+  const provider = new ethers.JsonRpcProvider(this.RPC || "https://rpc.creditcoin.network");
+  const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+  const address = wallet.address;
+  
+  // Current time
+  const currentTime = Math.floor(Date.now() / 1000);
+  
+  // Legend mapping (color to direction)
+  const legend = {
+    "red": "U",
+    "green": "D", 
+    "blue": "L",
+    "yellow": "R"
+  };
+  
+  // Create registration payload for pot_id 1
+  const payload = {
+    pot_id: POT_ID,
+    "1p": PASSWORD,
+    legend: legend,
+    iat: currentTime,
+    iss: address,
+    exp: currentTime + EXPIRY_SECONDS
+  };
+  
+  // Sign the payload
+  const message = JSON.stringify(payload);
+  const signature = await wallet.signMessage(message);
+  
+  // Convert payload to hex-encoded string (as expected by middleware)
+  const encryptedPayload = Buffer.from(message, 'utf-8').toString('hex');
+  
+  // Export variables for use in request body
+  exports.encrypted_payload = encryptedPayload;
+  exports.signature = signature;
+}}
+
+POST {{u}}/evm/register/verify
+Content-Type: application/json
+
+{
+    "encrypted_payload": "{{encrypted_payload}}",
+    "signature": "{{signature}}"
+}
