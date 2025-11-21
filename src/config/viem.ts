@@ -3,7 +3,6 @@ import { abi } from "@abis/MoneyPot.json";
 
 export const moneyPotABI = abi;
 
-import { abi as onepABI } from "@abis/OneP.json";
 
 import {
   createPublicClient,
@@ -58,20 +57,6 @@ export const creditcoinTestnet = defineChain({
         abis: erc20Abi,
         faucet: ["https://console.ideomind.org/"],
         airdrop: parseUnits("2000", 18),
-      },
-    },
-    onep: {
-      address: "0x15868E3227F91E7457689022DeFd364037F4293C",
-      symbol: "1P",
-      name: "1P",
-      decimals: 18,
-      abis: onepABI,
-      token: {
-        address: "0x15868E3227F91E7457689022DeFd364037F4293C",
-        symbol: "1P",
-        name: "1P Token",
-        decimals: 18,
-        abis: onepABI,
       },
     },
   },
@@ -131,12 +116,12 @@ export const sepolia = defineChain({
   rpcUrls: {
     default: {
       http: [
-        "https://eth-sepolia.api.onfinality.io/rpc?apikey=287672ec-ec5d-4890-9b24-d34d699dd3da",
-        "https://eth-sepolia.api.onfinality.io/rpc?apikey=1bd40958-ada5-4b09-8cbc-542bc44f0360",
-        "https://sepolia.infura.io/v3/82485203bdcc464398d1a31d7ed3b988",
+        "https://ethereum-sepolia-rpc.publicnode.com",
+        "https://eth-sepolia.public.blastapi.io",
+        "https://0xrpc.io/sep",
       ],
       webSocket: [
-        "wss://sepolia.infura.io/ws/v3/e2f4b52eab9c4e65b2feb158b717ca8f",
+        "wss://ethereum-sepolia-rpc.publicnode.com",
       ],
     },
     public: {
@@ -169,9 +154,6 @@ export const sepolia = defineChain({
         abis: erc20Abi,
       },
     },
-    onep: {
-      // TODO: one p yet to be deployed
-    },
   },
   testnet: true,
 });
@@ -179,7 +161,7 @@ export const sepolia = defineChain({
 
 
 // Contract addresses are now accessed through chain configuration
-// Use getMoneyPotContractAddress(chainId) and getOnePContractAddress(chainId) from @config/networks
+// Use getMoneyPotContractAddress(chainId) from @config/networks
 
 // Somnia Shannon Testnet Configuration
 export const somniaTestnet = defineChain({
@@ -193,7 +175,7 @@ export const somniaTestnet = defineChain({
   rpcUrls: {
     default: {
       http: [
-        "https://rpc.ankr.com/somnia_testnet/b538dd90abf174d5a5e91e686b9a0d2bcb80c0531c5d99fe61aa7b2a9720d453",
+        "https://dream-rpc.somnia.network",
       ],
     },
     public: {

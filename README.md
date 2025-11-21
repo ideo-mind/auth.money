@@ -1,29 +1,36 @@
-# Money Pot Verifier Service
+# MoneyPot Authentication Service
 
-A Cloudflare Workers-based verifier service for the Money Pot 1P (One-Letter Password) authentication protocol on Aptos blockchain.
+A production-grade authentication service for MoneyPot, providing multi-chain wallet verification for treasure hunting games on Aptos and EVM-compatible blockchains.
 
 ## Overview
 
-The Money Pot Verifier Service implements the 1P authentication system as described in the PRD documents. It provides secure, brain-based authentication for treasure hunting games where users compete to solve authentication challenges for USDC rewards.
+MoneyPot Authentication Service is a Cloudflare Workers-based API that enables secure wallet authentication and registration for treasure hunting games. It supports both Aptos and EVM-compatible chains, allowing users to authenticate and participate in treasure hunting competitions with encrypted password challenges.
+
+## Features
+
+- **Multi-Chain Support**: Aptos and EVM-compatible chains (Creditcoin, Sepolia, Polkadot Hub, Somnia)
+- **Wallet Authentication**: Secure signature-based wallet verification
+- **Encrypted Challenges**: RSA-encrypted password challenges for treasure hunting
+- **Public API**: All endpoints use public RPC endpoints (no API keys required)
+- **Cloudflare Workers**: Edge computing for low latency and global distribution
+- **Arkiv Integration**: Decentralized challenge storage on Arkiv Network
 
 ## Architecture
 
 - **Runtime**: Cloudflare Workers (Hono framework)
-- **Database**: Cloudflare KV (AUTH_DB for all storage)
-- **Blockchain**: Aptos (for pot and attempt data)
-- **Crypto**: RSA encryption/decryption with node-forge
-- **Storage**: Reuses existing CredentialStore and ChallengeStore patterns
+- **Database**: Cloudflare KV for persistent storage
+- **Blockchain**: Aptos and EVM-compatible chains
+- **Storage**: Arkiv Network for challenge storage (decentralized, TTL-based)
+- **Crypto**: RSA encryption/decryption, ECDSA signature verification
 
 ## API Endpoints
 
-### Registration Endpoints
+### Aptos Endpoints
 
-#### POST `/register/options`
-
+#### POST `/aptos/register/options`
 Generates RSA key pair for encrypted pot registration.
 
 **Response:**
-
 ```json
 {
   "public_key": "-----BEGIN PUBLIC KEY-----...",
@@ -31,12 +38,10 @@ Generates RSA key pair for encrypted pot registration.
 }
 ```
 
-#### POST `/register/verify`
-
-Verifies pot registration with encrypted 1P payload.
+#### POST `/aptos/register/verify`
+Verifies pot registration with encrypted payload.
 
 **Request:**
-
 ```json
 {
   "encrypted_payload": "encrypted_hex_string",
@@ -45,33 +50,20 @@ Verifies pot registration with encrypted 1P payload.
 }
 ```
 
-**Response:**
-
-```json
-{
-  "success": true
-}
-```
-
-### Authentication Endpoints
-
-#### POST `/authenticate/options`
-
-Generates authentication challenges for 1FA attempt.
+#### POST `/aptos/authenticate/options`
+Generates authentication challenges for treasure hunting attempt.
 
 **Request:**
-
 ```json
 {
   "payload": {
     "attempt_id": "attempt_123"
   },
-  "signature": "1fa_signature"
+  "signature": "aptos_signature"
 }
 ```
 
 **Response:**
-
 ```json
 {
   "challenge_id": "attempt_123",
@@ -84,12 +76,10 @@ Generates authentication challenges for 1FA attempt.
 }
 ```
 
-#### POST `/authenticate/verify`
-
-Verifies 1P authentication solution.
+#### POST `/aptos/authenticate/verify`
+Verifies authentication solution.
 
 **Request:**
-
 ```json
 {
   "solutions": ["Up", "Down", "Left"],
@@ -97,92 +87,78 @@ Verifies 1P authentication solution.
 }
 ```
 
-**Response:**
+### EVM Endpoints
 
+#### POST `/evm/register/options`
+Generates RSA key pair for encrypted pot registration on EVM chains.
+
+#### POST `/evm/register/verify`
+Verifies pot registration with encrypted payload and wallet signature.
+
+#### POST `/evm/authenticate/options`
+Generates authentication challenges for EVM treasure hunting attempt.
+
+#### POST `/evm/authenticate/verify`
+Verifies authentication solution for EVM attempts.
+
+#### POST `/evm/airdrop`
+Request airdrop tokens for testing.
+
+### General Endpoints
+
+#### GET `/chains`
+Returns all supported chains and their configurations.
+
+**Response:**
 ```json
 {
-  "success": true,
-  "message": "Authentication successful!"
+  "chains": [
+    {
+      "chainId": 2,
+      "type": "aptos",
+      "name": "Aptos Testnet",
+      "rpcUrl": "https://fullnode.testnet.aptoslabs.com/v1",
+      "explorerUrl": "https://explorer.aptoslabs.com",
+      "contracts": {
+        "moneypot": {
+          "address": "0x..."
+        }
+      }
+    }
+  ]
 }
 ```
 
-## 1P Protocol Details
+#### GET `/health`
+Health check endpoint.
 
-### Password Domains
+## Supported Chains
 
-The system supports various character domains for 1P passwords:
+### Aptos
+- **Testnet**: Aptos Testnet (Chain ID: 2)
 
-- **ASCII**: Letters and digits
-- **Symbols**: Special characters
-- **Emojis**: Various emoji categories
-- **International**: Japanese, Korean, Chinese, Arabic, Cyrillic
+### EVM-Compatible
+- **Creditcoin Testnet** (Chain ID: 102031)
+- **Sepolia** (Chain ID: 11155111)
+- **Polkadot Hub Testnet** (Chain ID: 420420422)
+- **Somnia Shannon Testnet** (Chain ID: 50312)
 
-### Color-Direction Mapping
+## Authentication Flow
 
-Users configure a legend mapping colors to directions:
+### Registration Flow
 
-- `red` → `Up`
-- `green` → `Down`
-- `blue` → `Left`
-- `yellow` → `Right`
-- `Skip` (no color) → Skip round
+1. User creates a pot on the blockchain → receives `pot_id`
+2. Generate RSA key pair → call `/register/options`
+3. Encrypt password configuration → call `/register/verify`
+4. Pot becomes available for treasure hunting
 
-### Challenge Generation
+### Authentication Flow
 
-1. Generate random 5x5 grid with random characters
-2. Place password character at random position
-3. Assign colors based on legend
-4. Repeat for each round (difficulty-based)
-
-### Solution Verification
-
-1. Find password character in each grid
-2. Check if submitted direction matches legend
-3. All rounds must be correct for success
-
-## Configuration
-
-### Environment Variables
-
-```toml
-[vars]
-rpID = "money-pot.fi"
-rpName = "MoneyPot"
-APTOS_NODE_URL = "https://fullnode.testnet.aptoslabs.com/v1"
-ORACLE_PRIVATE_KEY = "your_oracle_private_key"
-ORACLE_PRIVATE_KEY_EVM = "your_evm_oracle_private_key"  # Used for Arkiv challenge storage
-```
-
-### Storage
-
-#### Arkiv Decentralized Storage
-
-Challenge sessions for authentication now use **Arkiv** decentralized TTL storage, replacing Cloudflare KV for challenge management. Data is stored for exactly 10 minutes (configurable) and queried by challenge ID. Arkiv uses the same `ORACLE_PRIVATE_KEY_EVM` as other EVM operations.
-
-**Configuration:**
-- Arkiv configuration is hardcoded in `@config/viem.ts` (Arkiv testnet)
-- Chain ID: `60138453025`
-- RPC: `https://kaolin.hoodi.arkiv.network/rpc`
-- WebSocket: `wss://kaolin.hoodi.arkiv.network/rpc/ws`
-
-**Features:**
-- Automatic TTL-based expiration (10 minutes default)
-- Decentralized storage on Arkiv testnet
-- Query-based retrieval using annotations
-- No manual cleanup required (expires automatically)
-
-#### KV Namespaces
-
-- `AUTH_DB`: Legacy WebAuthn credentials and other persistent data
-- `ONE_P_DB`: 1P configurations (password + legend)
-
-## Security Features
-
-1. **RSA Encryption**: All sensitive data encrypted with 2048-bit RSA
-2. **Time-based Expiry**: Keys and challenges expire after 5 minutes
-3. **Signature Verification**: Aptos wallet signatures for authentication
-4. **One-time Use**: Challenges deleted after verification
-5. **Blockchain Integration**: Pot and attempt validation
+1. User pays entry fee → receives `attempt_id`
+2. Request challenges → call `/authenticate/options`
+3. Solve password challenges (color-direction mapping)
+4. Submit solutions → call `/authenticate/verify`
+5. Receive payout on success
 
 ## Development
 
@@ -190,46 +166,25 @@ Challenge sessions for authentication now use **Arkiv** decentralized TTL storag
 
 - Bun (recommended) or Node.js 18+
 - Wrangler CLI
-- Aptos testnet access
+- Cloudflare account
 
-### Quick Start
+### Installation
 
 ```bash
-# Install dependencies
 bun install
+```
 
-# Start development server
+### Development
+
+```bash
 bun run dev
 ```
 
-### Environment Setup
-
-1. Set up your environment variables in `wrangler.toml`:
-
-```toml
-[vars]
-APTOS_NODE_URL = "https://fullnode.testnet.aptoslabs.com/v1"
-MONEY_POT_ADDRESS = "0xea89ef9798a210009339ea6105c2008d8e154f8b5ae1807911c86320ea03ff3f"
-ORACLE_PRIVATE_KEY = "your_oracle_private_key_here"
-```
-
-2. Generate oracle account:
+### Build
 
 ```bash
-aptos account generate --output-file oracle-key.txt
+bun run build
 ```
-
-### Testing
-
-#### Manual Testing
-
-1. Start the service: `bun run dev`
-2. Open http://localhost:8787/health
-3. Test endpoints using curl or your frontend
-
-#### Integration with Simulation Script
-
-The service integrates with your existing `simul.py` script for end-to-end testing.
 
 ### Deployment
 
@@ -237,55 +192,23 @@ The service integrates with your existing `simul.py` script for end-to-end testi
 bun run deploy
 ```
 
-## Game Theory Economics
+## Configuration
 
-The Money Pot protocol prevents cheating through game theory:
+All configuration is hardcoded in `src/config/`:
+- **Networks**: `src/config/networks.ts`
+- **Aptos**: `src/config/aptos.ts`
+- **EVM**: `src/config/viem.ts`
 
-- **Honest Creators**: Earn 50% of entry fees from attracting hunters
-- **Cheating Creators**: Lose potential earnings by reducing hunter attraction
-- **Hunters**: Compete for 40% of pot value on successful authentication
-- **Platform**: Takes remaining fees for service provision
+All RPC endpoints are public (no API keys required).
 
-## Integration with Smart Contracts
+## Security
 
-The verifier service integrates with Aptos Move contracts:
+- RSA encryption for sensitive data (2048-bit keys)
+- ECDSA signature verification for wallet authentication
+- Time-based challenge expiry (5 minutes)
+- One-time use challenges (deleted after verification)
+- Blockchain integration for pot and attempt validation
 
-- `money_pot_manager.move`: Pot creation and management
-- `usdc_handler.move`: USDC deposit/withdrawal
-- `fee_distributor.move`: Entry fee and payout distribution
-- `pot_registry.move`: Active pots tracking
+## License
 
-## API Flow
-
-### Pot Creator Flow
-
-1. Create pot on blockchain → get `pot_id`
-2. Generate 1FA key pair → get `one_fa_address`
-3. Configure 1P password and legend
-4. Call `/register/options` → get RSA public key
-5. Encrypt payload and call `/register/verify`
-6. Pot becomes available for hunting
-
-### Treasure Hunter Flow
-
-1. Browse active pots
-2. Enter 1FA private key
-3. Pay entry fee → get `attempt_id`
-4. Call `/authenticate/options` → get challenges
-5. Solve 1P challenges
-6. Submit solutions to `/authenticate/verify`
-7. Receive payout on success
-
-## Monitoring
-
-- Health check: `GET /health`
-- Service status: `GET /`
-- Observability enabled in Cloudflare Workers
-
-## Future Enhancements
-
-1. **ZK Circuits**: Migrate to on-chain zero-knowledge proofs
-2. **Advanced Analytics**: Success rates and performance metrics
-3. **Multi-language Support**: Additional character domains
-4. **Mobile Optimization**: Enhanced mobile experience
-5. **Audit Integration**: Smart contract security audits
+See LICENSE file for details.
