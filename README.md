@@ -14,10 +14,18 @@ A production-grade authentication service for MoneyPot, providing multi-chain wa
 - **Arkiv-Powered App**: https://money-pot.ideomind.org
 - **Polkadot Testnet EVM Hub App**: https://mp-evm.ideomind.org
 
+### 📂 Repository Links
+
+- **Authentication Backend** (This Repository): https://github.com/ideo-mind/moneypot.auth
+- **Frontend (Aptos + Arkiv)**: https://github.com/ideo-mind/moneypot
+- **Frontend (EVM / Polkadot Hub)**: https://github.com/ideo-mind/moneypot.evm
+
 ### 📹 Videos & Presentation
 
-- **Pitch Video**: [Link to be added]
-- **Demo Video**: [Link to be added]
+- **Pitch Video**: [Watch on YouTube](https://youtu.be/430EiladvGk)
+- **Demo Videos**:
+  - **EVM Demo (Polkadot Hub)**: [Watch on YouTube](https://youtu.be/5XN1MwFJ6Ks)
+  - **Arkiv + Aptos Demo**: [Watch on YouTube](https://youtu.be/idCJSmm6QUs)
 - **Pitch Deck**: [Link to be added]
 
 ### 👥 Team
@@ -56,9 +64,11 @@ MoneyPot Authentication Service is a Cloudflare Workers-based API that enables s
 ### Aptos Endpoints
 
 #### POST `/aptos/register/options`
+
 Generates RSA key pair for encrypted pot registration.
 
 **Response:**
+
 ```json
 {
   "public_key": "-----BEGIN PUBLIC KEY-----...",
@@ -67,9 +77,11 @@ Generates RSA key pair for encrypted pot registration.
 ```
 
 #### POST `/aptos/register/verify`
+
 Verifies pot registration with encrypted payload.
 
 **Request:**
+
 ```json
 {
   "encrypted_payload": "encrypted_hex_string",
@@ -79,9 +91,11 @@ Verifies pot registration with encrypted payload.
 ```
 
 #### POST `/aptos/authenticate/options`
+
 Generates authentication challenges for treasure hunting attempt.
 
 **Request:**
+
 ```json
 {
   "payload": {
@@ -92,6 +106,7 @@ Generates authentication challenges for treasure hunting attempt.
 ```
 
 **Response:**
+
 ```json
 {
   "challenge_id": "attempt_123",
@@ -105,9 +120,11 @@ Generates authentication challenges for treasure hunting attempt.
 ```
 
 #### POST `/aptos/authenticate/verify`
+
 Verifies authentication solution.
 
 **Request:**
+
 ```json
 {
   "solutions": ["Up", "Down", "Left"],
@@ -118,26 +135,33 @@ Verifies authentication solution.
 ### EVM Endpoints (Including Polkadot Hub)
 
 #### POST `/evm/register/options`
+
 Generates RSA key pair for encrypted pot registration on EVM chains.
 
 #### POST `/evm/register/verify`
+
 Verifies pot registration with encrypted payload and wallet signature.
 
 #### POST `/evm/authenticate/options`
+
 Generates authentication challenges for EVM treasure hunting attempt.
 
 #### POST `/evm/authenticate/verify`
+
 Verifies authentication solution for EVM attempts.
 
 #### POST `/evm/airdrop`
+
 Request airdrop tokens for testing.
 
 ### General Endpoints
 
 #### GET `/chains`
+
 Returns all supported chains and their configurations, including Polkadot Hub.
 
 **Response:**
+
 ```json
 {
   "chains": [
@@ -158,17 +182,21 @@ Returns all supported chains and their configurations, including Polkadot Hub.
 ```
 
 #### GET `/health`
+
 Health check endpoint.
 
 #### GET `/`
+
 Service information and available endpoints.
 
 ## Supported Chains
 
 ### Aptos
+
 - **Testnet**: Aptos Testnet (Chain ID: 2)
 
 ### EVM-Compatible
+
 - **Creditcoin Testnet** (Chain ID: 102031)
 - **Sepolia** (Chain ID: 11155111)
 - **Polkadot Hub Testnet** (Chain ID: 420420422) ✅ **Hackathon Focus**
@@ -222,11 +250,13 @@ The service will be available at `http://localhost:8787`
 ### Testing the API
 
 Test the health endpoint:
+
 ```bash
 curl https://auth.money-pot.ideomind.org/health
 ```
 
 Get supported chains:
+
 ```bash
 curl https://auth.money-pot.ideomind.org/chains
 ```
@@ -247,6 +277,7 @@ bun run deploy
 ## Configuration
 
 All configuration is hardcoded in `src/config/`:
+
 - **Networks**: `src/config/networks.ts`
 - **Aptos**: `src/config/aptos.ts`
 - **EVM**: `src/config/viem.ts`
@@ -256,6 +287,7 @@ All RPC endpoints are public (no API keys required).
 ### Polkadot Hub Configuration
 
 The service is configured for Polkadot Hub Testnet with:
+
 - Chain ID: `420420422`
 - RPC: `https://testnet-passet-hub-eth-rpc.polkadot.io`
 - Explorer: `https://blockscout-passet-hub.parity-testnet.parity.io`
@@ -272,6 +304,7 @@ The service is configured for Polkadot Hub Testnet with:
 ### Interacting with the API
 
 1. **Check supported chains**:
+
    ```bash
    curl https://auth.money-pot.ideomind.org/chains | jq '.chains[] | select(.chainId == 420420422)'
    ```
@@ -293,7 +326,7 @@ The service is configured for Polkadot Hub Testnet with:
 - **Runtime**: Cloudflare Workers
 - **Framework**: Hono
 - **Language**: TypeScript
-- **Blockchain SDKs**: 
+- **Blockchain SDKs**:
   - Viem (EVM chains)
   - Aptos SDK
   - Arkiv SDK
@@ -316,6 +349,24 @@ src/
 └── lib/             # Core libraries
 ```
 
+## 🎬 Demo Videos
+
+### EVM Demo (Polkadot Hub)
+
+Watch our live demo showcasing MoneyPot authentication on Polkadot Hub Testnet (Passet Hub):
+
+- **[Watch EVM Demo on YouTube](https://youtu.be/5XN1MwFJ6Ks)**
+- Features: Wallet connection, pot registration, treasure hunting challenges
+- Live app: https://mp-evm.ideomind.org
+
+### Arkiv + Aptos Demo
+
+See how MoneyPot integrates with Arkiv Network for decentralized challenge storage:
+
+- **[Watch Arkiv + Aptos Demo on YouTube](https://youtu.be/idCJSmm6QUs)**
+- Features: Decentralized storage, Aptos authentication, encrypted challenges
+- Live app: https://money-pot.ideomind.org
+
 ## Milestone 2 Plan
 
 See [MILESTONE-2-PLAN.md](./MILESTONE-2-PLAN.md) for detailed Milestone 2 roadmap.
@@ -324,11 +375,19 @@ See [MILESTONE-2-PLAN.md](./MILESTONE-2-PLAN.md) for detailed Milestone 2 roadma
 
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 
+## Related Repositories
+
+This authentication backend is part of the MoneyPot ecosystem:
+
+- **[moneypot.auth](https://github.com/ideo-mind/moneypot.auth)** (This Repository) - Authentication service backend
+- **[moneypot](https://github.com/ideo-mind/moneypot)** - Frontend for Aptos + Arkiv integration
+- **[moneypot.evm](https://github.com/ideo-mind/moneypot.evm)** - Frontend for EVM chains (Polkadot Hub)
+
 ## Contact
 
 - **Email**: [hiro@ideomind.org](mailto:hiro@ideomind.org)
 - **Backend API**: https://auth.money-pot.ideomind.org
-- **Demo Apps**: 
+- **Demo Apps**:
   - https://money-pot.ideomind.org (Arkiv-powered)
   - https://mp-evm.ideomind.org (Polkadot Hub)
 
