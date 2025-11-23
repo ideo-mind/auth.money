@@ -33,18 +33,18 @@ See **[ARCHITECTURE.md](./ARCHITECTURE.md)** for detailed architecture diagrams,
    - TTL: 10 minutes (automatic expiration)
 
 2. **Challenge Verification**: When verifying solutions, we query Arkiv using the query builder:
+
    ```typescript
-   publicClient.buildQuery()
-     .where([
-       eq("type", "challenge"),
-       eq("challengeId", attempt_id),
-     ])
+   publicClient
+     .buildQuery()
+     .where([eq("type", "challenge"), eq("challengeId", attempt_id)])
      .fetch()
    ```
 
 3. **Automatic Cleanup**: Challenges automatically expire via Arkiv's TTL mechanism, eliminating the need for manual session management.
 
 **Benefits**:
+
 - ✅ Decentralized storage (no dependency on Cloudflare KV)
 - ✅ Automatic expiration via TTL
 - ✅ On-chain transparency
@@ -353,6 +353,7 @@ The service uses **Arkiv Network Mendoza Testnet** for decentralized challenge s
 - **SDK**: `@arkiv-network/sdk@^0.4.4`
 
 **Environment Variables Required**:
+
 - `ORACLE_PRIVATE_KEY_EVM`: Private key for Arkiv write operations (EVM format `0x...`)
 
 **Configuration Location**: `src/config/viem.ts`
@@ -392,15 +393,17 @@ The service is configured for Polkadot Hub Testnet with:
 ### Code Examples
 
 **Challenge Creation**:
+
 ```typescript
 // src/db/challengeStore.ts
-await ChallengeStore.setChallenge(env, challengeId);
+await ChallengeStore.setChallenge(env, challengeId)
 ```
 
 **Challenge Query**:
+
 ```typescript
 // src/db/challengeStore.ts
-const exists = await ChallengeStore.getChallenge(env, challengeId);
+const exists = await ChallengeStore.getChallenge(env, challengeId)
 ```
 
 See `src/db/challengeStore.ts` for the full implementation.
