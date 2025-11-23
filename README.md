@@ -80,7 +80,7 @@ See [Setup Instructions](#setup-instructions) below for full deployment guide.
 
 - **Pitch Video**: [Watch on YouTube](https://youtu.be/430EiladvGk)
 - **Demo Videos**:
-  - **EVM Demo (Polkadot Hub)**: [Watch on YouTube](https://youtu.be/5XN1MwFJ6Ks)
+  - **EVM Demo (Polkadot Hub)**: [Watch on YouTube](https://youtu.be/E13YjXeCWoo)
   - **Arkiv + Aptos Demo**: [Watch on YouTube](https://youtu.be/idCJSmm6QUs)
 - **Pitch Deck**: [Link to be added]
 
@@ -474,7 +474,7 @@ src/
 
 Watch our live demo showcasing MoneyPot authentication on Polkadot Hub Testnet (Passet Hub):
 
-- **[Watch EVM Demo on YouTube](https://youtu.be/5XN1MwFJ6Ks)**
+- **[Watch EVM Demo on YouTube](https://youtu.be/E13YjXeCWoo)**
 - Features: Wallet connection, pot registration, treasure hunting challenges
 - Live app: https://mp-evm.ideomind.org
 
