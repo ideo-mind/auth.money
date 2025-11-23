@@ -156,17 +156,17 @@ const results = await publicClient
 ```mermaid
 graph LR
     subgraph "Challenge Lifecycle"
-        CREATE[1. Create Challenge<br/>POST /authenticate/options]
-        STORE[2. Store in Arkiv<br/>createEntity]
-        QUERY[3. Verify Challenge<br/>POST /authenticate/verify]
-        EXPIRE[4. Auto-Expire<br/>TTL: 10 minutes]
+        CREATE["1. Create Challenge<br/>POST /authenticate/options"]
+        STORE["2. Store in Arkiv<br/>createEntity"]
+        QUERY["3. Verify Challenge<br/>POST /authenticate/verify"]
+        EXPIRE["4. Auto-Expire<br/>TTL: 10 minutes"]
     end
 
     subgraph "Arkiv Entity Structure"
         ENTITY[Entity]
-        ATTRS[Attributes:<br/>- type: challenge<br/>- challengeId: xxx]
-        PAYLOAD[Payload:<br/>"active"]
-        TTL[TTL:<br/>600 seconds]
+        ATTRS["Attributes:<br/>- type: challenge<br/>- challengeId: xxx"]
+        PAYLOAD["Payload:<br/>active"]
+        TTL["TTL:<br/>600 seconds"]
     end
 
     CREATE --> STORE
